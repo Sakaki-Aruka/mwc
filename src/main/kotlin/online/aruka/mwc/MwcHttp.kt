@@ -93,6 +93,13 @@ class MwcHttp(private val plugin: MwcPlugin, private val config: MwcConfig, priv
             return
         }
         val p = ex.requestURI.rawPath
+        // 末尾スラッシュなし (例: /admin/mc) のとき、ブラウザの相対パスは親ディレクトリ基準で
+        // 解決されて壊れるため {base}/ へリダイレクトする
+        if (config.basePath.isNotEmpty() && p == config.basePath) {
+            ex.responseHeaders.add("Location", "${config.basePath}/")
+            send(ex, 301, "text/plain", "")
+            return
+        }
         val path = if (config.basePath.isEmpty()) p else p.removePrefix(config.basePath)
         when {
             path.isEmpty() || path == "/" || path == "/index.html" -> serveIndex(ex)

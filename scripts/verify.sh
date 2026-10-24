@@ -236,7 +236,7 @@ EOF
     fail "subpath: GET /admin/mc/ -> $CODE (want 200 html)"
   fi
   for ref in $(grep -oE '(src|href)="[^"]+"' "$TMP_BODY" 2>/dev/null | sed -E 's/^(src|href)="//; s/"$//' | grep -v '^#' | grep -v '^http' | sort -u); do
-    url=$(python3 - "$BASE/admin/mc/" "$ref" <<'EOF'
+    url=$(python3 - "$BASE/" "$ref" <<'EOF'
 import sys, posixpath
 base, ref = sys.argv[1], sys.argv[2]
 print(posixpath.normpath(posixpath.join(base.rstrip('/'), ref)))

@@ -2,10 +2,54 @@
 <html lang="ja">
 <head>
 <meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
 <title>MWC</title>
+<link rel="stylesheet" href="static/app.css">
 </head>
 <body>
-<h1>MWC</h1>
-<p>placeholder</p>
+
+<div id="login-view" class="hidden">
+  <form id="login-form">
+    <h1>MWC</h1>
+    <p class="sub">Minecraft Web Console</p>
+    <label for="token">Token</label>
+    <input id="token" type="password" autocomplete="off" autofocus required>
+    <button type="submit">ログイン</button>
+    <p id="login-error" class="error" role="alert"></p>
+  </form>
+</div>
+
+<div id="app-view" class="hidden">
+  <header>
+    <h1>MWC</h1>
+    <span id="conn" class="conn"></span>
+  </header>
+
+  <section class="panel">
+    <h2>状態</h2>
+    <div id="status" class="status">読み込み中…</div>
+  </section>
+
+  <section class="panel">
+    <h2>プレイヤー</h2>
+    <table id="players">
+      <thead>
+        <tr><th>名前</th><th>UUID</th><th>ping</th><th>ワールド</th></tr>
+      </thead>
+      <tbody id="players-body"></tbody>
+    </table>
+  </section>
+
+  <section class="panel">
+    <h2>コンソール</h2>
+    <div id="console" class="console"></div>
+    <form id="cmd-form">
+      <input id="cmd" type="text" autocomplete="off" spellcheck="false" placeholder="コマンド (例: say hello)">
+      <button type="submit">送信</button>
+    </form>
+  </section>
+</div>
+
+<script src="static/app.js"></script>
 </body>
 </html>
