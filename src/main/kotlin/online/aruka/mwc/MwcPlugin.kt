@@ -47,5 +47,7 @@ class MwcPlugin : JavaPlugin() {
     private fun registerHandlers(h: MwcHttp) {
         val status = StatusHandler(this, startMs)
         h.handlers["GET status"] = { ex, _ -> status.handle(ex) }
+        val players = PlayersHandler(this)
+        h.handlers["GET players"] = { ex, _ -> players.handle(ex) }
     }
 }

@@ -11,15 +11,23 @@
 - [x] verify M1 合格 (cycle 5、24/24 項目 PASS)
 - [x] commit
 
-### 次: M2 (プレイヤー API)
-- [ ] PlayersHandler: GET {bp}/api/players -> [{name, uuid, ping, world}] (0 人なら空配列)
-- [ ] verify M2 + commit
+### 次: M2 (プレイヤー API) — 合格
+- [x] PlayersHandler: GET {bp}/api/players -> [{name, uuid, ping, world}] (0 人なら空配列)
+- [x] verify M2 合格 (cycle 6、初回 PASS)
+- [x] commit
+
+### 現在のマイルストーン: M3 (コンソール: SSE + コマンド送信)
+- [ ] LogBuffer: Log4j2 Appender をルートロガーに追加 → リングバッファ (既定 1000 行、ANSI 除去)。onDisable で Appender 削除
+- [ ] ConsoleHandler: GET {bp}/api/console (SSE、Cookie 認証)。接続時にバッファ全量を送信 → 以降リアルタイム。keepalive
+- [ ] CommandHandler: POST {bp}/api/command {command} -> メインスレッドで Bukkit.dispatchCommand(console, cmd)
+- [ ] MwcPlugin で Appender の attach/detach
+- [ ] verify M3 + commit
 
 ## マイルストーン進捗 (詳細は PROGRESS.md)
 - [x] M0 Maven + Kotlin 雛形
-- [ ] M1 HTTP + base-path + 認証 + 状態 API ← 現在
-- [ ] M2 プレイヤー API
-- [ ] M3 コンソール (SSE + コマンド送信)
+- [x] M1 HTTP + base-path + 認証 + 状態 API
+- [x] M2 プレイヤー API
+- [ ] M3 コンソール (SSE + コマンド送信) ← 現在
 - [ ] M4 最小フロントエンド
 - [ ] M5 ファイル管理① 一覧・閲覧・編集
 - [ ] M6 ファイル管理② アップロード・削除

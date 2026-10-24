@@ -19,3 +19,12 @@
 - 実装: com.sun.net.httpserver (context は base+/api と base のみ)、Auth (トークン 64hex 初回のみコンソール表示・token.key 0600・Cookie MWC_SESSION HttpOnly/SameSite=Strict/Path=base・レート制限 5回/60s→60s ブロック・CSRF ヘッダ X-MWC-Request)、StatusHandler (MainThread.call でメインスレッド取得)
 - 失敗: cycle 3 (verify.sh の URL 構築バグ: 二重スラッシュ・BASE_RAW 未定義・フィールド名不一致)、cycle 4 (Auth.checkSession が MatchResult.value をセッションキーに使っていて常に 401 / verify.sh が base-path 設定を書き込んでいなかった)
 
+## M2 (2026-10-24): プレイヤー API — 合格 (cycle 6、初回 PASS)
+- 検証: `scripts/verify.sh M2` で PASS。GET /api/players → 200、JSON 配列、0 人のとき空配列。
+- 実装: PlayersHandler (name/uuid/ping/world、MainThread.call)。`Player#getPing()` は Paper Javadoc 1.21.4 で確認済み (int, ms)。
+
+## M3 (進行中): コンソール (SSE + コマンド送信)
+- [ ] Log4j2 Appender + リングバッファ (ANSI 除去)、onDisable で Appender 削除
+- [ ] GET api/console (SSE、バッファ送信 + リアルタイム配信)
+- [ ] POST api/command (メインスレッドで dispatchCommand)
+
