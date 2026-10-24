@@ -37,10 +37,13 @@ class ConsoleLog(private val plugin: MwcPlugin) {
     private var captureWriter: BufferedWriter? = null
     private var captureSize = 0L
 
-    // リングバッファ (ANSI 除去済みの行を古い順に保持。SSE 配信は次のステップ)
+    // リングバッファ (ANSI 除去済みの行を古い順に保持)
     private val buffer = ArrayDeque<String>()
     @Volatile
     private var capacity: Int = 1000
+
+    // SSE 購読者 (行を非ブロッキングで受け取る)
+    private val listeners = java.util.concurrent.CopyOnWriteArrayList<(String) -> Unit>()
 
     @Volatile
     private var loggedFirst = false
@@ -54,6 +57,7 @@ class ConsoleLog(private val plugin: MwcPlugin) {
 
     /** Appender を外してファイルを閉じる (onDisable で必ず呼ぶ) */
     fun detach() {
+        listeners.clear()
         try {
             rootLoggerConfig()?.removeAppender(APPENDER_NAME)
             appender.stop()
@@ -74,6 +78,19 @@ class ConsoleLog(private val plugin: MwcPlugin) {
     /** リングバッファの写し (古い順)。SSE 接続時の初期送信に使う */
     fun snapshot(): List<String> = synchronized(buffer) { buffer.toList() }
 
+    /**
+     * 購読を開始する。バッファの写しと購読登録はアトミックに行う
+     * (写し取りと登録の間の行は重複も欠落もしない)。
+     * 戻り値は (バッファの写し, 購読解除関数)
+     */
+    fun subscribeWithSnapshot(onLine: (String) -> Unit): Pair<List<String>, () -> Unit> =
+        synchronized(buffer) {
+            val snap = buffer.toList()
+            val unsub: () -> Unit = { listeners.remove(onLine) }
+            listeners.add(onLine)
+            snap to unsub
+        }
+
     /** 1 行をバッファに追加 (ANSI 除去済みのはずだが念のため除去して保持) */
     private fun addLine(line: String) {
         synchronized(buffer) {
@@ -89,6 +106,13 @@ class ConsoleLog(private val plugin: MwcPlugin) {
             loggedFirst = true
             val preview = line.take(80).replace("\n", "\\n")
             plugin.logger.info("MWC: console capture active (first line: $preview)")
+        }
+        for (l in listeners) {
+            try {
+                l(line)
+            } catch (_: Throwable) {
+                // 購読者の異常はログ取得全体に影響させない
+            }
         }
         writeCapture(line)
     }

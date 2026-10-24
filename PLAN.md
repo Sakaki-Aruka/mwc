@@ -19,7 +19,7 @@
 - [x] pom.xml に log4j-core 2.17.1 (provided) を追加
 - [x] ① ConsoleLog 最小版: Appender をルートロガーに付与、設定 `console.capture-file` 指定時だけ行を dataFolder 配下に追記し、最初の行をサーバーログに 1 回だけ記録 → ビルド → サーバー起動で確認 → commit
 - [x] ② リングバッファ: 既定 1000 行(config console.buffer-size)、ANSI 除去。キャプチャファイルも除去済み文字列で書く(除去の証拠)→ ビルド → 動作確認 → commit
-- [ ] ③ SSE: GET {bp}/api/console (Cookie 認証)。ヘッダ → バッファ全量 → ライブ行。購読者ごとに有界キュー+デーモン writer、10 秒 keepalive コメント → ビルド → curl で data 行確認 → commit
+- [x] ③ SSE: GET {bp}/api/console (Cookie 認証)。ヘッダ → バッファ全量 → ライブ行。購読者ごとに有界キュー+デーモン writer、10 秒 keepalive コメント → ビルド → curl で data 行確認 → commit
 - [ ] ④ コマンド送信: POST {bp}/api/command {command} → メインスレッドで Bukkit.dispatchCommand(console, cmd)、CommandException → 400、監査ログ → ビルド → 動作確認
 - [ ] `timeout 1200 bash scripts/verify.sh M3` (cycle 7) → 結果をその場で eval/log.jsonl に追記 → PASS なら PROGRESS 更新 + commit → M4
 

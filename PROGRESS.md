@@ -30,7 +30,7 @@
   1 つずつ足しては動かす)は PLAN.md に記載。jar 中身を開いての調査は禁止、調査は最初の 1 回のみ。
 - [x] ① 最小 Appender(行を受け取る) → ビルド → サーバーで確認 → commit (m3-step1-test.sh 全 PASS)
 - [x] ② リングバッファ (既定 1000 行、ANSI 除去) (m3-step2-test.sh 全 PASS: ESC 除去・CSI 残骸で証拠確認)
-- [ ] ③ GET api/console (SSE、バッファ送信 + リアルタイム配信)
+- [x] ③ GET api/console (SSE、バッファ送信 + リアルタイム配信) (m3-step3-test.sh 全 PASS: 401/buffer/live/例外なし)
 - [ ] ④ POST api/command (メインスレッドで dispatchCommand) + onDisable で Appender 削除
 - [ ] verify M3 (cycle 7 = 最初の verify 実行) + commit
 
