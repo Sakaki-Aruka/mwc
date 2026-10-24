@@ -14,14 +14,17 @@
 - サイクル数 = `verify.sh M3` の実行回数。M3 の上限 8 サイクルは未消化。cycle 7 が最初の verify 実行。
 
 ### M3 タスク(順に 1 つずつ commit)
-- [ ] 状態ファイル更新 + commit(介入反映)
-- [ ] 公式 Log4j2 Javadoc を fetch_url で 1 ページだけ読む(Appender API 確認、唯一の調査)
-- [ ] pom.xml に log4j-core (provided) を追加
-- [ ] ① ConsoleLog 最小版: Appender をルートロガーに付与、行を受け取ったらサーバーディレクトリの `mwc-capture.log` に書き出し(無限再帰に注意: plugin.logger 経由の出力はしない)→ ビルド → サーバー起動でキャプチャファイルにログ行が入ることを確認 → commit
+- [x] 状態ファイル更新 + commit(介入反映) (0f05127)
+- [x] 調査 1 回分: Javadoc は javadoc/log4j-core/... が現在のパス(旧パスは 404)。API の形は書いてコンパイルで確認
+- [x] pom.xml に log4j-core 2.17.1 (provided) を追加
+- [x] ① ConsoleLog 最小版: Appender をルートロガーに付与、設定 `console.capture-file` 指定時だけ行を dataFolder 配下に追記し、最初の行をサーバーログに 1 回だけ記録 → ビルド → サーバー起動で確認 → commit
 - [ ] ② リングバッファ: 既定 1000 行(config console.buffer-size)、ANSI 除去。キャプチャファイルも除去済み文字列で書く(除去の証拠)→ ビルド → 動作確認 → commit
 - [ ] ③ SSE: GET {bp}/api/console (Cookie 認証)。ヘッダ → バッファ全量 → ライブ行。購読者ごとに有界キュー+デーモン writer、10 秒 keepalive コメント → ビルド → curl で data 行確認 → commit
 - [ ] ④ コマンド送信: POST {bp}/api/command {command} → メインスレッドで Bukkit.dispatchCommand(console, cmd)、CommandException → 400、監査ログ → ビルド → 動作確認
 - [ ] `timeout 1200 bash scripts/verify.sh M3` (cycle 7) → 結果をその場で eval/log.jsonl に追記 → PASS なら PROGRESS 更新 + commit → M4
+
+### M5/M6 への引き継ぎメモ
+- 保護対象: token.key と自 jar のほかに **capture.log**(`console.capture-file` のキャプチャ行にはトークン表示行が含まれるため)。
 
 ## 過去完了
 - [x] M0 合格 (cycle 2, commit 2e36239)

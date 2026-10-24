@@ -28,7 +28,7 @@
   ツリーは M2 の commit(df77243)に戻され、AGENTS.md に追記が commit された(6a521b9)。
   **M3 は最初からやり直す**。新しい手順(最小 Appender → commit → リングバッファ → SSE → コマンド送信、
   1 つずつ足しては動かす)は PLAN.md に記載。jar 中身を開いての調査は禁止、調査は最初の 1 回のみ。
-- [ ] ① 最小 Appender(行を受け取る) → ビルド → サーバーで確認 → commit
+- [x] ① 最小 Appender(行を受け取る) → ビルド → サーバーで確認 → commit (m3-step1-test.sh 全 PASS)
 - [ ] ② リングバッファ (既定 1000 行、ANSI 除去)
 - [ ] ③ GET api/console (SSE、バッファ送信 + リアルタイム配信)
 - [ ] ④ POST api/command (メインスレッドで dispatchCommand) + onDisable で Appender 削除

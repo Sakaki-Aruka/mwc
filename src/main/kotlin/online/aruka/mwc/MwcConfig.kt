@@ -16,6 +16,7 @@ class MwcConfig(private val plugin: MwcPlugin) {
     var maxUploadSize: Long = 100L * 1024 * 1024      // 100 MB
     var recursiveDelete: Boolean = false
     var consoleBufferSize: Int = 1000
+    var captureFile: String = ""              // デバッグ用: 受け取った行をこのファイル(dataFolder 内)に追記
     var restartMethod: String = "shutdown"            // shutdown | restart
     var textExtensions: Set<String> = setOf(
         ".yml", ".yaml", ".json", ".properties", ".txt", ".conf",
@@ -33,6 +34,7 @@ class MwcConfig(private val plugin: MwcPlugin) {
         maxUploadSize = c.getLong("file-manager.max-upload-size", maxUploadSize)
         recursiveDelete = c.getBoolean("file-manager.recursive-delete", recursiveDelete)
         consoleBufferSize = c.getInt("console.buffer-size", consoleBufferSize)
+        captureFile = c.getString("console.capture-file", captureFile) ?: ""
         restartMethod = c.getString("restart.method", restartMethod) ?: "shutdown"
         val exts = c.getStringList("file-manager.text-extensions")
         if (exts.isNotEmpty()) textExtensions = exts.map { it.lowercase() }.toSet()

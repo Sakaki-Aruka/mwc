@@ -40,6 +40,9 @@ file-manager:
 console:
   # SSE に接続するときに送信する履歴行数(リングバッファ)
   buffer-size: 1000
+  # デバッグ用: 受け取ったログ行を plugins/MWC/ 配下のファイルに追記する。
+  # 空欄(既定)なら書き込まない。キャプチャされた行にはトークン表示行も含まれるため保護対象。
+  capture-file: ""
 
 restart:
   # shutdown: Bukkit.shutdown() で停止し外部の監視(systemd 等)に再起動を任める(既定)

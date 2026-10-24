@@ -25,3 +25,18 @@
 - log4j の版本決定: コンパイルは log4j-core 2.17.1(provided)を使用。Paper 実行時が 2.24.1 と
   混在する場合は、API の互換性(2.17.1 でコンパイルしたものを 2.24.1 で実行)が成立する前提で進める。
   実際には Paper は自前の log4j を使用するため、provided なら実行時に Paper 側の log4j が使われる。
+- (2026-10-24) log4j-core 2.17.1 の API 形をコンパイラ出力で確定(3 回のコンパイル失敗から、各エラーメッセージが
+  正確なシグネチャを教えてくれた):
+  - 抽象メソッドは `append(LogEvent)`。`appendInternal` は 2.17.1 にない(新バージョン用)。
+  - コンストラクタ: `AbstractAppender(String name, Filter, Layout, boolean ignoreExceptions)` の 4 引数が存在。
+    `ErrorHandlingMode` という enum は 2.17.1 に存在しない。
+  - `LoggerConfig.addAppender(Appender, Level, Filter)`(3 引数必須、null も可) /
+    `LoggerConfig.removeAppender(String name)`(名前で削除)。
+  - `LogManager.getContext(false) as? org.apache.logging.log4j.core.LoggerContext`(インターフェース)が成立。
+    `org.apache.logging.log4j.core.impl.Log4jContext` というクラスは 2.17.1 に存在しない。
+    `getConfiguration()` の Kotlin プロパティ名は `.configuration`(`.config` ではない)。
+  - 文字列取得: `event.message?.formattedMessage`。
+- 検証: scripts/m3-step1-test.sh で PASS(起動→stdin マーカー送信→plugins/MWC/mwc-capture.log に
+  マーカー行・起動ログ行が記録、サーバーログに例外なし、'console capture active' 行あり)。
+  → 実行時の Paper 側 log4j でも 2.17.1 でコンパイルした Appender は動作することを確認。
+- 副産物の確認: キャプチャファイルの先頭行はトークン表示行 → capture.log は M5/M6 の保護対象に追加。

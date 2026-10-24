@@ -31,3 +31,10 @@
   SSE で配信。ANSI エスケープは除去して保持する。
 - 調査ルール(監督役追記 2026-10-24 21:30): 1 疑問あたり web_search+fetch_url 合計 3 回まで、
   決まらなければ書いてビルドして確かめる。`~/.m2` や jar 中身(zipfile 等)を開かない。
+- log4j-core 2.17.1 の API 形(コンパイラ出力で確定。詳細は docs/decisions-log.md):
+  抽象メソッドは `append(LogEvent)`(`appendInternal` ではない)/ コンストラクタは
+  `AbstractAppender(String, Filter, Layout, boolean)` / `LoggerConfig.addAppender(Appender, Level, Filter)` /
+  `LoggerConfig.removeAppender(String)` / root は
+  `(LogManager.getContext(false) as? core.LoggerContext)?.configuration?.rootLogger`。
+  `event.message?.formattedMessage` で文字列を取得。
+- M5/M6 の保護対象に **capture.log**(`console.capture-file` のファイル)を追加(トークン表示行を含む)。

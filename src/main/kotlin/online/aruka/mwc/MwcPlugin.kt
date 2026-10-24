@@ -16,11 +16,16 @@ class MwcPlugin : JavaPlugin() {
     lateinit var http: MwcHttp
         private set
 
+    lateinit var consoleLog: ConsoleLog
+        private set
+
     val startMs: Long = System.currentTimeMillis()
 
     override fun onEnable() {
         config = MwcConfig(this)
         config.load()
+        consoleLog = ConsoleLog(this)
+        consoleLog.attach()
         auth = Auth(this)
         auth.init()
         val h = MwcHttp(this, config, auth)
@@ -39,6 +44,10 @@ class MwcPlugin : JavaPlugin() {
     override fun onDisable() {
         try {
             http.stop()
+        } catch (_: Exception) {
+        }
+        try {
+            consoleLog.detach()
         } catch (_: Exception) {
         }
         logger.info("MWC disabled")

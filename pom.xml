@@ -32,6 +32,13 @@
       <version>1.21.4-R0.1-SNAPSHOT</version>
       <scope>provided</scope>
     </dependency>
+    <!-- Paper が実行時に同梱する log4j (実行時 2.24.1)。コンパイルのため provided。 -->
+    <dependency>
+      <groupId>org.apache.logging.log4j</groupId>
+      <artifactId>log4j-core</artifactId>
+      <version>2.17.1</version>
+      <scope>provided</scope>
+    </dependency>
     <!-- bundled into the jar via maven-shade-plugin (relocated), see DECISIONS.md -->
     <dependency>
       <groupId>org.jetbrains.kotlin</groupId>
