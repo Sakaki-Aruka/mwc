@@ -29,7 +29,7 @@
   **M3 は最初からやり直す**。新しい手順(最小 Appender → commit → リングバッファ → SSE → コマンド送信、
   1 つずつ足しては動かす)は PLAN.md に記載。jar 中身を開いての調査は禁止、調査は最初の 1 回のみ。
 - [x] ① 最小 Appender(行を受け取る) → ビルド → サーバーで確認 → commit (m3-step1-test.sh 全 PASS)
-- [ ] ② リングバッファ (既定 1000 行、ANSI 除去)
+- [x] ② リングバッファ (既定 1000 行、ANSI 除去) (m3-step2-test.sh 全 PASS: ESC 除去・CSI 残骸で証拠確認)
 - [ ] ③ GET api/console (SSE、バッファ送信 + リアルタイム配信)
 - [ ] ④ POST api/command (メインスレッドで dispatchCommand) + onDisable で Appender 削除
 - [ ] verify M3 (cycle 7 = 最初の verify 実行) + commit

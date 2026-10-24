@@ -10,10 +10,9 @@ import java.io.FileWriter
 /**
  * コンソールログの取得: Log4j2 の Appender をルートロガーに付与してログ行を受け取る。
  *
- * ステップ1(最小): 受け取った行を、設定 `console.capture-file` が指定されていれば
- * プラグインディレクトリ内のファイルに追記し(上限 1MB になったら切り捨て)、
- * 最初の行だけサーバーログに記録する。
- * (リングバッファ / SSE 配信は次のステップで追加する)
+ * 受け取った行は ANSI エスケープを除去してリングバッファに保持し、
+ * 設定 `console.capture-file` が指定されていれば同様にファイルに追記する
+ * (上限 1MB になったら切り捨て)。
  *
  * 無限再帰に注意: plugin.logger からの出力はこの Appender にも届くが、
  * 「最初の行だけ 1 回」のログは再帰しない (loggedFirst が 2 回目で true になる)。
@@ -38,11 +37,17 @@ class ConsoleLog(private val plugin: MwcPlugin) {
     private var captureWriter: BufferedWriter? = null
     private var captureSize = 0L
 
+    // リングバッファ (ANSI 除去済みの行を古い順に保持。SSE 配信は次のステップ)
+    private val buffer = ArrayDeque<String>()
+    @Volatile
+    private var capacity: Int = 1000
+
     @Volatile
     private var loggedFirst = false
 
     /** ルートロガーに Appender を付与する (onEnable で呼ぶ) */
     fun attach() {
+        capacity = plugin.config.consoleBufferSize.coerceAtLeast(1)
         appender.start()
         rootLoggerConfig()?.addAppender(appender, null, null)
     }
@@ -66,14 +71,30 @@ class ConsoleLog(private val plugin: MwcPlugin) {
         (LogManager.getContext(false) as? org.apache.logging.log4j.core.LoggerContext)
             ?.configuration?.rootLogger
 
+    /** リングバッファの写し (古い順)。SSE 接続時の初期送信に使う */
+    fun snapshot(): List<String> = synchronized(buffer) { buffer.toList() }
+
+    /** 1 行をバッファに追加 (ANSI 除去済みのはずだが念のため除去して保持) */
+    private fun addLine(line: String) {
+        synchronized(buffer) {
+            buffer.addLast(line)
+            while (buffer.size > capacity) buffer.removeFirst()
+        }
+    }
+
     private fun onLine(msg: String) {
+        val line = stripAnsi(msg)
+        addLine(line)
         if (!loggedFirst) {
             loggedFirst = true
-            val preview = msg.take(80).replace("\n", "\\n")
+            val preview = line.take(80).replace("\n", "\\n")
             plugin.logger.info("MWC: console capture active (first line: $preview)")
         }
-        writeCapture(msg)
+        writeCapture(line)
     }
+
+    /** ANSI エスケープシーケンス (CSI / OSC / 単一エスケープ) を除去する */
+    private fun stripAnsi(s: String): String = if ('\u001B' in s) ANSI_RE.replace(s, "") else s
 
     private fun writeCapture(msg: String) {
         val f = captureFile ?: return
@@ -102,5 +123,10 @@ class ConsoleLog(private val plugin: MwcPlugin) {
     companion object {
         private const val APPENDER_NAME = "MwcConsoleCapture"
         private const val MAX_CAPTURE = 1L * 1024 * 1024
+
+        // CSI (\x1B[ ... 終端文字) / OSC (\x1B] ... BEL | \x1B\) / 単一エスケープ (\x1B X)
+        private val ANSI_RE = Regex(
+            "\u001B\\[[0-9;?]*[ -/]*[@-~]|\u001B\\][^\u0007\u001B]*(?:\u0007|\u001B\\\\)|\u001B[@-Z\\-_]"
+        )
     }
 }
