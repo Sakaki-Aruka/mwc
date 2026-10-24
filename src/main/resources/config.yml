@@ -1,0 +1,47 @@
+# MWC (Minecraft Web Console) 設定
+http:
+  # 既定はローカルホストのみ。外部公開は host を 0.0.0.0 に変更(要認証の強度確認)。
+  host: 127.0.0.1
+  port: 8420
+  # 待ち受けパス。リバースプロキシ配下なら "/admin/mc" のように指定。
+  # API・静的ファイル・SSE はすべてこの配下に載る。
+  base-path: /
+
+file-manager:
+  # 操作できるルート(サーバーディレクトリ相対)。既定ではワールド・logs は対象外。
+  roots:
+    - server.properties
+    - bukkit.yml
+    - spigot.yml
+    - config
+    - plugins
+  # テキスト編集の対象サイズ上限 (bytes, 既定 1MB)
+  max-edit-size: 1048576
+  # アップロードのサイズ上限 (bytes, 既定 100MB)
+  max-upload-size: 104857600
+  # ディレクトリの再帰削除を許可する既定は false (空ディレクトリのみ削除可能)
+  recursive-delete: false
+  # テキストと判定する拡張子
+  text-extensions:
+    - .yml
+    - .yaml
+    - .json
+    - .properties
+    - .txt
+    - .conf
+    - .toml
+    - .cfg
+    - .xml
+    - .md
+    - .ini
+    - .lst
+    - .dat
+
+console:
+  # SSE に接続するときに送信する履歴行数(リングバッファ)
+  buffer-size: 1000
+
+restart:
+  # shutdown: Bukkit.shutdown() で停止し外部の監視(systemd 等)に再起動を任める(既定)
+  # restart:  Spigot の restart() を実行 (spigot.yml の restart-script が必要)
+  method: shutdown

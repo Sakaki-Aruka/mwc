@@ -38,6 +38,14 @@ http() {
   BODY=$(cat "$TMP_BODY")
 }
 
+# base-path を含めない生 URL 用 (例: base=/admin/mc のとき /api/status が 404 になる検証)
+http_raw() {
+  local method=$1 path=$2
+  CODE=$(curl -s --max-time 30 -o "$TMP_BODY" -w '%{http_code}' "$BASE_RAW$path" 2>"$ROOT/tmp/curl.err") || CODE="000"
+  if [[ ! -f $TMP_BODY ]]; then : > "$TMP_BODY"; fi
+  BODY=$(cat "$TMP_BODY")
+}
+
 json_get() { # json_get '<json>' '.a.b' -> jq
   jq -r "$2" <<<"$1" 2>/dev/null
 }
@@ -56,9 +64,12 @@ if [[ -f $ROOT/target/MWC.jar ]]; then pass "target/MWC.jar exists"; else fail "
 start_with() { # start_with <base-path>
   local bp=$1
   BASE_PATH=$bp
-  BASE="http://127.0.0.1:$PORT$bp"
+  BASE="http://127.0.0.1:$PORT${bp%/}"
+  BASE_RAW="http://127.0.0.1:$PORT"
   rm -f "$CK" "$TMP_BODY"
   if [[ -d $TDIR/plugins/MWC ]]; then rm -rf "$TDIR/plugins/MWC"; fi  # 前回実行の設定・トークンを消す(初回起動の挙動を毎回検証)
+  mkdir -p "$TDIR/plugins/MWC"
+  printf 'http:\n  base-path: %s\n' "$bp" >"$TDIR/plugins/MWC/config.yml"  # 検証対象の base-path をサーバーに適用
   cp -f "$ROOT/target/MWC.jar" "$TDIR/plugins/MWC.jar"
   mwc_server_start
   if mwc_server_wait_ready 180; then
@@ -105,7 +116,7 @@ m1_checks() {
   http GET "/api/status"
   if [[ $CODE == 200 ]]; then
     pass "status with auth -> 200"
-    for field in tps memory uptime_seconds version players_online; do
+    for field in tps avg_tick_time_ms memory_used_mb memory_max_mb uptime_seconds version players_online players_max; do
       v=$(json_get "$BODY" ".$field")
       [[ -n $v && $v != null ]] && pass "status has $field ($v)" || fail "status missing $field"
     done
@@ -123,13 +134,13 @@ m1_checks() {
 
   # --- run B: base-path /admin/mc ---
   start_with "/admin/mc"
+  http_raw GET "/api/status"
+  [[ $CODE == 404 ]] && pass "base-path /admin/mc: /api/status (no prefix) -> 404" || fail "base-path /admin/mc: /api/status (no prefix) -> $CODE (want 404): $BODY"
   http GET "/api/status"
-  [[ $CODE == 404 ]] && pass "base-path /admin/mc: /api/status -> 404" || fail "base-path /admin/mc: /api/status -> $CODE (want 404)"
-  http GET "/admin/mc/api/status"
   [[ $CODE == 401 ]] && pass "base-path /admin/mc: /admin/mc/api/status unauth -> 401" || fail "base-path /admin/mc: /admin/mc/api/status unauth -> $CODE (want 401)"
-  http POST "/admin/mc/api/login" '{"token":"'"$TOKEN"'"}'
+  http POST "/api/login" '{"token":"'"$TOKEN"'"}'
   [[ $CODE == 200 ]] && pass "base-path /admin/mc: login -> 200" || fail "base-path /admin/mc: login -> $CODE: $BODY"
-  http GET "/admin/mc/api/status"
+  http GET "/api/status"
   if [[ $CODE == 200 ]]; then
     pass "base-path /admin/mc: /admin/mc/api/status -> 200"
   else
@@ -218,7 +229,7 @@ EOF
   stop_server
 
   start_with "/admin/mc"
-  http GET "/admin/mc/"
+  http GET "/"
   if [[ $CODE == 200 ]] && grep -q '<html' "$TMP_BODY"; then
     pass "subpath: GET /admin/mc/ -> 200 html"
   else
@@ -348,7 +359,7 @@ m6_checks() {
   [[ -f $TDIR/plugins/mwc-up-test.bin.bak ]] && pass ".bak created on overwrite" || fail ".bak not created on overwrite"
 
   # ルート外・不正名
-  for p in "../mwc-outside.txt" "plugins/../mwc-outside.txt" "/etc/mwc-evil.txt" "plugins%2F..%2Fx.txt" "plugins/..%5Cevil" "plugins/bad$(printf '\n')name"; do
+  for p in "../mwc-outside.txt" "plugins/../mwc-outside.txt" "/etc/mwc-evil.txt" "plugins%2F..%2Fx.txt" "plugins/..%5Cevil" "plugins/bad%0Aname"; do
     CODE=$(curl -s -o "$TMP_BODY" -w '%{http_code}' -b "$CK" -H "X-MWC-Request: mwc" --max-time 30 \
       --data-binary @"$ROOT/tmp/up-test.bin" "$BASE/api/files/upload?path=$p" 2>/dev/null)
     BODY=$(cat "$TMP_BODY")

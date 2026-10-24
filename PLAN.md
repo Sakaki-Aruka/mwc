@@ -4,20 +4,12 @@
 
 ### M1 タスク
 - [x] M0 完了 (2026-10-24): pom/kotlin 雛形・verify.sh・run-test-server.sh・有効化確認
-- [ ] Http.kt: com.sun.net.httpserver 起動。context は base-path 配下 1 つのみ登録。
-      - base-path `/` のとき context `/`、それ以外は context `"$bp/api"` + 静的/ルート用 context `$bp`
-      - リクエストはすべて base-path 配下のみ (base 外は 404 になること: context がマッチしないため)
-- [ ] Auth.kt: トークン生成 (SecureRandom 32byte base64url) + token.key 永続化 (plugins/MWC/)
-      - 初回生成時はコンソールに一度だけ表示
-      - POST {bp}/api/login {token} -> HttpOnly/SameSite=Strict Cookie (Path=bp)
-      - Cookie セッションの検証 (メモリ map: cookieToken -> 有効期限)
-      - レート制限: IP ごとの失敗カウント (5 回で 60 秒ブロック)
-      - CSRF: 状態変更メソッド (POST/PUT/DELETE) はヘッダ X-MWC-Request: mwc 必須
-- [ ] StatusHandler: GET {bp}/api/status -> tps[]/avg_tick_time_ms/memory/uptime_seconds/version/players_online/players_max
-      (Bukkit API はメインスレッドで取得: scheduler + CountDownLatch)
-- [ ] MwcPlugin: onEnable で設定読込・トークン生成・HTTP 起動。onDisable で停止
-- [ ] verify M1 (base-path / と /admin/mc の 2 回起動) で合格
-- [ ] commit
+- [x] MwcConfig.kt / Auth.kt / MwcHttp.kt / StatusHandler.kt / config.yml / index.html(プレースホルダ) 実装
+- [x] verify.sh 修正 (cycle 3 失敗の要因): BASE 末尾スラッシュ除去+BASE_RAW 定義、m1 フィールド名を実 API に合わせる、m4 サブパス参照を "/" に、M6 の改行テストを %0A に、start_with で plugins/MWC/config.yml に base-path を書き込む
+- [x] CSRF チェックを handleApi 先頭へ (login 含む全 POST/PUT/DELETE で 403)
+- [x] Auth.checkSession のバグ修正: MatchResult.value (全文) をキーに使っていた → groupValues[1] (cycle 4 fail の原因)
+- [x] verify M1 合格 (cycle 5、24/24 項目 PASS)
+- [x] commit
 
 ### 次: M2 (プレイヤー API)
 - [ ] PlayersHandler: GET {bp}/api/players -> [{name, uuid, ping, world}] (0 人なら空配列)

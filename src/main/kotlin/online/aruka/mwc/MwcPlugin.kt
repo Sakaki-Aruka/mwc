@@ -7,11 +7,45 @@ import org.bukkit.plugin.java.JavaPlugin
  */
 class MwcPlugin : JavaPlugin() {
 
+    lateinit var config: MwcConfig
+        private set
+
+    lateinit var auth: Auth
+        private set
+
+    lateinit var http: MwcHttp
+        private set
+
+    val startMs: Long = System.currentTimeMillis()
+
     override fun onEnable() {
-        logger.info("MWC ${description.version} enabled")
+        config = MwcConfig(this)
+        config.load()
+        auth = Auth(this)
+        auth.init()
+        val h = MwcHttp(this, config, auth)
+        http = h
+        registerHandlers(h)
+        try {
+            h.start()
+        } catch (e: Exception) {
+            logger.severe("MWC: HTTP server failed to start on ${config.host}:${config.port}: ${e.message}")
+            isEnabled = false
+            return
+        }
+        logger.info("MWC ${description.version} enabled at http://${config.host}:${config.port}${config.basePath}/")
     }
 
     override fun onDisable() {
+        try {
+            http.stop()
+        } catch (_: Exception) {
+        }
         logger.info("MWC disabled")
+    }
+
+    private fun registerHandlers(h: MwcHttp) {
+        val status = StatusHandler(this, startMs)
+        h.handlers["GET status"] = { ex, _ -> status.handle(ex) }
     }
 }
