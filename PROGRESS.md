@@ -23,14 +23,25 @@
 - 検証: `scripts/verify.sh M2` で PASS。GET /api/players → 200、JSON 配列、0 人のとき空配列。
 - 実装: PlayersHandler (name/uuid/ping/world、MainThread.call)。`Player#getPing()` は Paper Javadoc 1.21.4 で確認済み (int, ms)。
 
-## M3 (進行中・やり直し): コンソール (SSE + コマンド送信)
+## M3 (2026-10-24): コンソール (SSE + コマンド送信) — 合格 (cycle 7、初回 PASS)
 - 2026-10-24 21:30 監督役介入: 30 分以上コードを書かずに調査(45 コマンド)していたため作業停止。
   ツリーは M2 の commit(df77243)に戻され、AGENTS.md に追記が commit された(6a521b9)。
   **M3 は最初からやり直す**。新しい手順(最小 Appender → commit → リングバッファ → SSE → コマンド送信、
   1 つずつ足しては動かす)は PLAN.md に記載。jar 中身を開いての調査は禁止、調査は最初の 1 回のみ。
-- [x] ① 最小 Appender(行を受け取る) → ビルド → サーバーで確認 → commit (m3-step1-test.sh 全 PASS)
-- [x] ② リングバッファ (既定 1000 行、ANSI 除去) (m3-step2-test.sh 全 PASS: ESC 除去・CSI 残骸で証拠確認)
-- [x] ③ GET api/console (SSE、バッファ送信 + リアルタイム配信) (m3-step3-test.sh 全 PASS: 401/buffer/live/例外なし)
-- [x] ④ POST api/command (メインスレッドで dispatchCommand) + onDisable で Appender 削除 (m3-step4-test.sh 全 PASS)
-- [ ] verify M3 (cycle 7 = 最初の verify 実行) + commit
+- 検証: `scripts/verify.sh M3` で PASS (cycle 7、初回)。
+  - SSE (GET /api/console): 認証なし 401。認証ありで `data: ` 行がバッファ(起動ログ)から届く。
+    接続後に `say hello` → SSE にライブ配信される
+  - POST /api/command: `{"command":"say hello"}` → 200。サーバーログに say の出力と監査ログ
+  - サーバーログに例外・スタックトレースなし
+- 実装 (4 段階、各 commit):
+  - step1 (a3040d9): log4j Appender (AbstractAppender サブクラス) をルートロガーに付与。
+    2.17.1 の API 形はコンパイラ出力で確定 (append(LogEvent) / addAppender(Appender, Level, Filter) /
+    removeAppender(String) / core.LoggerContext.configuration.rootLogger)
+  - step2 (59075c0): リングバッファ (既定 1000 行、console.buffer-size) + ANSI 除去 (CSI/OSC/単一エスケープ)。
+    検証: メッセージに ESC を含めて say → キャプチャに ESC なし・CSI 残骸 [32m/[0m ありで除去を確認
+  - step3 (3edca36): SSE ハンドラ。購読登録とバッファ写しはアトミック。購読者ごとに有界キュー
+    (満杯で古い行を捨てる)、10 秒 keepalive コメント
+  - step4 (0306f0e): コマンド送信。MainThread.call で dispatchCommand(メインスレッド)。
+    未知コマンドは 400 (dispatchCommand が false を返す。例外は投げない — 実測で判明)
+- 副産物: `console.capture-file` 設定 (デバッグ用キャプチャ) は M5/M6 で保護対象 (トークン行を含む)
 
