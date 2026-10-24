@@ -37,6 +37,7 @@
     connectSse();
     pollStatus();
     pollPlayers();
+    showFiles();
   }
 
   // fetch wrapper. A 401 on any non-login API means the session expired.
@@ -169,10 +170,180 @@
     }).catch(function () { appendLine('(command send failed)', 'err'); });
   });
 
+  // ---------- files (list + text editor) ----------
+
+  var fileState = { path: '', editing: null, etag: null, busy: false };
+
+  function joinPath(base, name) {
+    if (!base) return name;
+    return base + '/' + name;
+  }
+
+  function fmtSize(n) {
+    if (n == null) return '';
+    if (n < 1024) return n + ' B';
+    if (n < 1024 * 1024) return (n / 1024).toFixed(1) + ' KB';
+    return (n / (1024 * 1024)).toFixed(1) + ' MB';
+  }
+
+  function fmtTime(ms) {
+    var d = new Date(ms);
+    function p(x) { return x < 10 ? '0' + x : '' + x; }
+    return d.getFullYear() + '-' + p(d.getMonth() + 1) + '-' + p(d.getDate()) +
+      ' ' + p(d.getHours()) + ':' + p(d.getMinutes());
+  }
+
+  function fileEl(id) { return $(id); }
+
+  function setFileStatus(text, bad) {
+    var el = fileEl('file-editor-status');
+    el.textContent = text;
+    el.classList.toggle('err', !!bad);
+  }
+
+  function renderPath() {
+    var el = fileEl('file-path');
+    el.textContent = '/' + fileState.path;
+    fileEl('file-up').classList.toggle('hidden', !fileState.path);
+  }
+
+  function listFiles() {
+    api('api/files?path=' + encodeURIComponent(fileState.path)).then(function (res) {
+      if (!res.ok) {
+        var tb = fileEl('files-body');
+        tb.innerHTML = '';
+        var tr = document.createElement('tr');
+        var td = document.createElement('td');
+        td.colSpan = 4;
+        td.className = 'err';
+        td.textContent = '一覧の取得に失敗しました (' + res.status + ')';
+        tr.appendChild(td);
+        tb.appendChild(tr);
+        return;
+      }
+      return res.json().then(function (list) {
+        var frag = document.createDocumentFragment();
+        if (list.length === 0) {
+          var tr0 = document.createElement('tr');
+          var td0 = document.createElement('td');
+          td0.colSpan = 4;
+          td0.className = 'empty';
+          td0.textContent = '(空)';
+          tr0.appendChild(td0);
+          frag.appendChild(tr0);
+        }
+        list.forEach(function (f) {
+          var tr = document.createElement('tr');
+          tr.className = 'file-row';
+          tr.style.cursor = 'pointer';
+          var name = document.createElement('td');
+          name.textContent = (f.type === 'dir' ? '📁 ' : '📄 ') + f.name;
+          var type = document.createElement('td');
+          type.textContent = f.type === 'dir' ? 'dir' : 'file';
+          var size = document.createElement('td');
+          size.textContent = f.type === 'dir' ? '' : fmtSize(f.size);
+          var mtime = document.createElement('td');
+          mtime.textContent = f.mtime ? fmtTime(f.mtime) : '';
+          tr.appendChild(name); tr.appendChild(type); tr.appendChild(size); tr.appendChild(mtime);
+          tr.addEventListener('click', function () {
+            var rel = joinPath(fileState.path, f.name);
+            if (f.type === 'dir') {
+              fileState.path = rel;
+              renderPath();
+              closeEditor();
+              listFiles();
+            } else {
+              openEditor(rel);
+            }
+          });
+          frag.appendChild(tr);
+        });
+        fileEl('files-body').replaceChildren(frag);
+      });
+    }).catch(function () { /* ignore transient errors */ });
+  }
+
+  function openEditor(rel) {
+    fileState.editing = rel;
+    fileEl('file-editor').classList.remove('hidden');
+    fileEl('file-editor-name').textContent = rel;
+    setFileStatus('読み込み中…', false);
+    fileEl('file-content').value = '';
+    api('api/file?path=' + encodeURIComponent(rel)).then(function (res) {
+      if (!res.ok) {
+        var msg = { 403: '保護対象のため閲覧できません', 404: 'ファイルが見つかりません',
+                     415: 'テキストファイルのみ編集できます', 400: '読み込めません' }[res.status] || ('エラー ' + res.status);
+        setFileStatus(msg, true);
+        return;
+      }
+      fileState.etag = res.headers.get('ETag') || '';
+      return res.text().then(function (text) {
+        fileEl('file-content').value = text;
+        setFileStatus(fileState.etag ? '' : '(ETag なし。保存できません)', !fileState.etag);
+      });
+    }).catch(function () { setFileStatus('読み込めません', true); });
+  }
+
+  function closeEditor() {
+    fileState.editing = null;
+    fileState.etag = null;
+    fileEl('file-editor').classList.add('hidden');
+    setFileStatus('', false);
+  }
+
+  function saveEditor() {
+    if (fileState.busy || !fileState.editing) return;
+    if (!fileState.etag) { setFileStatus('ETag なしのため保存できません。一覧から開き直してください。', true); return; }
+    fileState.busy = true;
+    setFileStatus('保存中…', false);
+    api('api/file?path=' + encodeURIComponent(fileState.editing), {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json', 'X-MWC-Request': 'mwc' },
+      body: JSON.stringify({ content: fileEl('file-content').value, etag: fileState.etag })
+    }).then(function (res) {
+      if (res.ok) {
+        setFileStatus('保存しました', false);
+        listFiles();
+        // 保存後の ETag を取り直す
+        api('api/file?path=' + encodeURIComponent(fileState.editing)).then(function (r2) {
+          if (r2.ok) fileState.etag = r2.headers.get('ETag') || '';
+        }).catch(function () { /* ignore */ });
+      } else if (res.status === 409) {
+        setFileStatus('競合: ファイルが変更されています。再読み込みしてください。', true);
+      } else if (res.status === 413) {
+        setFileStatus('サイズ上限を超えています', true);
+      } else {
+        return res.json().catch(function () { return {}; }).then(function (j) {
+          setFileStatus('保存失敗: ' + (j.error || res.status), true);
+        });
+      }
+    }).catch(function () { setFileStatus('保存失敗(通信エラー)', true) })
+      .then(function () { fileState.busy = false; });
+  }
+
+  fileEl('file-refresh').addEventListener('click', function () { closeEditor(); listFiles(); });
+  fileEl('file-up').addEventListener('click', function () {
+    var parts = fileState.path.split('/');
+    parts.pop();
+    fileState.path = parts.join('/');
+    renderPath();
+    closeEditor();
+    listFiles();
+  });
+  fileEl('file-save').addEventListener('click', saveEditor);
+  fileEl('file-close').addEventListener('click', closeEditor);
+
+  function showFiles() {
+    fileState.path = '';
+    renderPath();
+    closeEditor();
+    listFiles();
+  }
+
   // ---------- init: straight to app when a valid session cookie exists ----------
 
   api('api/status').then(function (res) {
-    if (res.ok) showApp(); else showLogin();
+    if (res.ok) { showApp(); showFiles(); } else showLogin();
   }).catch(function () { showLogin(); });
 
   setInterval(pollStatus, 2000);

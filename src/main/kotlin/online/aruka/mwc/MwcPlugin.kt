@@ -62,5 +62,12 @@ class MwcPlugin : JavaPlugin() {
         h.handlers["GET console"] = { ex, _ -> sse.handle(ex) }
         val command = CommandHandler(this)
         h.handlers["POST command"] = { ex, _ -> command.handle(ex) }
+        val fa = FileAccess(this, config)
+        val fileList = FileListHandler(fa)
+        h.handlers["GET files"] = { ex, _ -> fileList.handle(ex) }
+        val fileRead = FileReadHandler(fa)
+        h.handlers["GET file"] = { ex, _ -> fileRead.handle(ex) }
+        val fileWrite = FileWriteHandler(fa, config, auth)
+        h.handlers["PUT file"] = { ex, _ -> fileWrite.handle(ex) }
     }
 }

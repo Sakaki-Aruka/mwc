@@ -32,7 +32,12 @@ http() {
   local method=$1 path=$2 data=${3:-} nocsr=${4:-0}
   local args=(-s --max-time 30 -o "$TMP_BODY" -w '%{http_code}' -b "$CK" -c "$CK" -H "Content-Type: application/json")
   [[ $nocsr == 1 ]] || args+=(-H "X-MWC-Request: mwc")
-  if [[ -n $data ]]; then args+=(--data "$data"); fi
+  if [[ -n $data ]]; then
+    # 大きなボディ(1MB 超)は argv の単一引数 128KB 制限 (MAX_ARG_STRLEN) を超えるため
+    # 一時ファイル経由 (--data-binary @file) で送る
+    printf '%s' "$data" > "$TMP_BODY.req"
+    args+=(--data-binary "@$TMP_BODY.req")
+  fi
   CODE=$(curl "${args[@]}" -X "$method" "$BASE$path" 2>"$ROOT/tmp/curl.err") || CODE="000"
   if [[ ! -f $TMP_BODY ]]; then : > "$TMP_BODY"; fi
   BODY=$(cat "$TMP_BODY")

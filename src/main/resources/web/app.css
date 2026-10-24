@@ -35,3 +35,13 @@ td.empty { color: #9aa3b2; font-style: italic; }
 #cmd-form input { flex: 1; padding: .5rem .6rem; font-family: ui-monospace, monospace; background: #101216; border: 1px solid #2a2f3a; color: inherit; border-radius: 4px; }
 button { padding: .5rem 1rem; cursor: pointer; background: #33507e; color: #fff; border: 0; border-radius: 4px; }
 button:hover { background: #40639c; }
+
+#file-bar { display: flex; align-items: center; gap: .5rem; margin-bottom: .5rem; }
+.file-path { flex: 1; font-family: ui-monospace, monospace; font-size: .85rem; color: #7ec699; }
+.file-row:hover { background: #262b35; }
+.file-status { flex: 1; font-size: .8rem; color: #7ec699; }
+.file-status.err { color: #ff6b6b; }
+#file-editor { margin-top: .75rem; border-top: 1px solid #2a2f3a; padding-top: .5rem; }
+#file-editor-bar { display: flex; align-items: center; gap: .5rem; margin-bottom: .4rem; font-size: .85rem; }
+#file-editor-name { font-family: ui-monospace, monospace; }
+#file-content { width: 100%; height: 260px; background: #101216; border: 1px solid #2a2f3a; color: inherit; font-family: ui-monospace, monospace; font-size: .8rem; line-height: 1.45; padding: .5rem; border-radius: 4px; }

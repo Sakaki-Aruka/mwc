@@ -48,6 +48,30 @@
       <button type="submit">送信</button>
     </form>
   </section>
+
+  <section class="panel">
+    <h2>ファイル</h2>
+    <div id="file-bar">
+      <span id="file-path" class="file-path"></span>
+      <button id="file-refresh" type="button">更新</button>
+      <button id="file-up" type="button" class="hidden">..</button>
+    </div>
+    <table id="files">
+      <thead>
+        <tr><th>名前</th><th>種別</th><th>サイズ</th><th>更新日時</th></tr>
+      </thead>
+      <tbody id="files-body"></tbody>
+    </table>
+    <div id="file-editor" class="hidden">
+      <div id="file-editor-bar">
+        <span id="file-editor-name"></span>
+        <span id="file-editor-status" class="file-status"></span>
+        <button id="file-save" type="button">保存</button>
+        <button id="file-close" type="button">閉じる</button>
+      </div>
+      <textarea id="file-content" spellcheck="false"></textarea>
+    </div>
+  </section>
 </div>
 
 <script src="static/app.js"></script>
