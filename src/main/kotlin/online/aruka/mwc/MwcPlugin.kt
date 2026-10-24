@@ -60,5 +60,7 @@ class MwcPlugin : JavaPlugin() {
         h.handlers["GET players"] = { ex, _ -> players.handle(ex) }
         val sse = ConsoleSseHandler(consoleLog)
         h.handlers["GET console"] = { ex, _ -> sse.handle(ex) }
+        val command = CommandHandler(this)
+        h.handlers["POST command"] = { ex, _ -> command.handle(ex) }
     }
 }

@@ -31,6 +31,6 @@
 - [x] ① 最小 Appender(行を受け取る) → ビルド → サーバーで確認 → commit (m3-step1-test.sh 全 PASS)
 - [x] ② リングバッファ (既定 1000 行、ANSI 除去) (m3-step2-test.sh 全 PASS: ESC 除去・CSI 残骸で証拠確認)
 - [x] ③ GET api/console (SSE、バッファ送信 + リアルタイム配信) (m3-step3-test.sh 全 PASS: 401/buffer/live/例外なし)
-- [ ] ④ POST api/command (メインスレッドで dispatchCommand) + onDisable で Appender 削除
+- [x] ④ POST api/command (メインスレッドで dispatchCommand) + onDisable で Appender 削除 (m3-step4-test.sh 全 PASS)
 - [ ] verify M3 (cycle 7 = 最初の verify 実行) + commit
 
