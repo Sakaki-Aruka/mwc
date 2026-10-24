@@ -40,3 +40,19 @@
   マーカー行・起動ログ行が記録、サーバーログに例外なし、'console capture active' 行あり)。
   → 実行時の Paper 側 log4j でも 2.17.1 でコンパイルした Appender は動作することを確認。
 - 副産物の確認: キャプチャファイルの先頭行はトークン表示行 → capture.log は M5/M6 の保護対象に追加。
+
+## 2026-10-25
+
+- M5 verify 再実行の失敗原因 (E2BIG): verify.sh の `http()` が `curl --data "$data"` で 1.1MB ボディを
+  1 引数に渡していた。Linux の単一引数上限 (MAX_ARG_STRLEN = 128KB) を超え
+  `curl: Argument list too long` → verify 側 `|| CODE="000"` にフォールバックし oversize 編集チェックが 000。
+  サーバー側の問題ではなかった(要求が到達していなかった)。
+  修正: ボディを一時ファイルに書き `--data-binary "@$file"` で渡す (commit 6db11e0)。
+- eval/log.jsonl の結合バグ: printf 追記時にファイル末尾の改行が欠落していたため 2 行が 1 行に結合
+  (`...true}{"ts": ...`)。python で `}{"ts":` を分割して修正し全行 json.loads で検証。
+  再発防止: 追記前に `tail -c 1` で末尾が改行か確認する (M6 の cycle 12 追記でも再発し同様に修正)。
+- eval の追記漏れ (cycle 10.5): M5 の NPE 修正後の再実行 (26/27、E2BIG 起因の 1 check fail) の
+  その場追記を漏らしていた。cycle 8 の前例 (late_append) に従い補足行を追加。
+  ts は推測せず、当該実行のサーバーログ最終タイムスタンプ (01:19:38 = 停止時、
+  `test-server/logs/2026-10-25-2.log.gz`。次回の 01:23:57 にローテーション) から復元。
+  既存行の書き換えを避けるため cycle 番号は "10.5" (既存 10 と 11 の間の実行を示す)。

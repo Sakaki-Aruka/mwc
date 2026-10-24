@@ -214,7 +214,7 @@
         tb.innerHTML = '';
         var tr = document.createElement('tr');
         var td = document.createElement('td');
-        td.colSpan = 4;
+        td.colSpan = 5;
         td.className = 'err';
         td.textContent = '一覧の取得に失敗しました (' + res.status + ')';
         tr.appendChild(td);
@@ -226,7 +226,7 @@
         if (list.length === 0) {
           var tr0 = document.createElement('tr');
           var td0 = document.createElement('td');
-          td0.colSpan = 4;
+          td0.colSpan = 5;
           td0.className = 'empty';
           td0.textContent = '(空)';
           tr0.appendChild(td0);
@@ -244,7 +244,18 @@
           size.textContent = f.type === 'dir' ? '' : fmtSize(f.size);
           var mtime = document.createElement('td');
           mtime.textContent = f.mtime ? fmtTime(f.mtime) : '';
-          tr.appendChild(name); tr.appendChild(type); tr.appendChild(size); tr.appendChild(mtime);
+          var act = document.createElement('td');
+          var del = document.createElement('button');
+          del.type = 'button';
+          del.className = 'file-del';
+          del.textContent = '削除';
+          del.title = '削除';
+          del.addEventListener('click', function (ev) {
+            ev.stopPropagation();
+            deleteEntry(joinPath(fileState.path, f.name), f.type);
+          });
+          act.appendChild(del);
+          tr.appendChild(name); tr.appendChild(type); tr.appendChild(size); tr.appendChild(mtime); tr.appendChild(act);
           tr.addEventListener('click', function () {
             var rel = joinPath(fileState.path, f.name);
             if (f.type === 'dir') {
@@ -332,6 +343,79 @@
   });
   fileEl('file-save').addEventListener('click', saveEditor);
   fileEl('file-close').addEventListener('click', closeEditor);
+
+  // ---------- upload + delete ----------
+
+  var uploadInput = fileEl('file-upload-input');
+
+  fileEl('file-upload-btn').addEventListener('click', function () {
+    if (fileState.busy) return;
+    uploadInput.value = '';
+    uploadInput.click();
+  });
+
+  uploadInput.addEventListener('change', function () {
+    var file = uploadInput.files && uploadInput.files[0];
+    if (!file || fileState.busy) return;
+    uploadFile(file);
+  });
+
+  function uploadFile(file) {
+    var dir = fileState.path;
+    var name = file.name;
+    var dest = joinPath(dir, name);
+    fileState.busy = true;
+    setFileStatus('アップロード中…', false);
+    function doUpload(overwrite) {
+      var url = 'api/files/upload?path=' + encodeURIComponent(dest) + (overwrite ? '&overwrite=true' : '');
+      return api(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/octet-stream', 'X-MWC-Request': 'mwc' },
+        body: file
+      }).then(function (res) {
+        if (res.ok) {
+          setFileStatus('アップロードしました (' + fmtSize(file.size) + ')', false);
+          listFiles();
+          return;
+        }
+        if (res.status === 409 && !overwrite) {
+          // 既存ファイルの上書き確認(確認ダイアログ必須)
+          if (window.confirm('"' + name + '" は既に存在します。上書きしますか?\n(上書き前に .bak が作成されます)')) {
+            return doUpload(true);
+          }
+          setFileStatus('アップロードをキャンセルしました', false);
+          return;
+        }
+        return res.json().catch(function () { return {}; }).then(function (j) {
+          setFileStatus('アップロード失敗: ' + (j.error || res.status), true);
+        });
+      }).catch(function () { setFileStatus('アップロード失敗(通信エラー)', true); })
+        .then(function () { fileState.busy = false; });
+    }
+    doUpload(false);
+  }
+
+  function deleteEntry(rel, type) {
+    var what = type === 'dir' ? 'ディレクトリ' : 'ファイル';
+    var msg = '"' + rel + '" (' + what + ') を削除します。この操作は取り消せません。続行しますか?';
+    if (!window.confirm(msg)) return;
+    if (type === 'dir' && !window.confirm('ディレクトリ削除は空のディレクトリのみ対象です。続行しますか?')) return;
+    fileState.busy = true;
+    api('api/files?path=' + encodeURIComponent(rel) + '&confirm=true', {
+      method: 'DELETE',
+      headers: { 'X-MWC-Request': 'mwc' }
+    }).then(function (res) {
+      if (res.ok) {
+        setFileStatus('削除しました', false);
+        listFiles();
+        return;
+      }
+      return res.json().catch(function () { return {}; }).then(function (j) {
+        setFileStatus('削除失敗: ' + (j.error || res.status), true);
+      });
+    }).catch(function () { setFileStatus('削除失敗(通信エラー)', true); })
+      .then(function () { fileState.busy = false; });
+  }
 
   function showFiles() {
     fileState.path = '';

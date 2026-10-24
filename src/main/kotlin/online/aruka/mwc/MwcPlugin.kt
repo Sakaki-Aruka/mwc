@@ -69,5 +69,9 @@ class MwcPlugin : JavaPlugin() {
         h.handlers["GET file"] = { ex, _ -> fileRead.handle(ex) }
         val fileWrite = FileWriteHandler(fa, config, auth)
         h.handlers["PUT file"] = { ex, _ -> fileWrite.handle(ex) }
+        val fileUpload = FileUploadHandler(fa, config, auth)
+        h.handlers["POST files/upload"] = { ex, _ -> fileUpload.handle(ex) }
+        val fileDelete = FileDeleteHandler(fa, config, auth)
+        h.handlers["DELETE files"] = { ex, _ -> fileDelete.handle(ex) }
     }
 }
