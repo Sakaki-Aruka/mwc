@@ -23,8 +23,14 @@
 - 検証: `scripts/verify.sh M2` で PASS。GET /api/players → 200、JSON 配列、0 人のとき空配列。
 - 実装: PlayersHandler (name/uuid/ping/world、MainThread.call)。`Player#getPing()` は Paper Javadoc 1.21.4 で確認済み (int, ms)。
 
-## M3 (進行中): コンソール (SSE + コマンド送信)
-- [ ] Log4j2 Appender + リングバッファ (ANSI 除去)、onDisable で Appender 削除
-- [ ] GET api/console (SSE、バッファ送信 + リアルタイム配信)
-- [ ] POST api/command (メインスレッドで dispatchCommand)
+## M3 (進行中・やり直し): コンソール (SSE + コマンド送信)
+- 2026-10-24 21:30 監督役介入: 30 分以上コードを書かずに調査(45 コマンド)していたため作業停止。
+  ツリーは M2 の commit(df77243)に戻され、AGENTS.md に追記が commit された(6a521b9)。
+  **M3 は最初からやり直す**。新しい手順(最小 Appender → commit → リングバッファ → SSE → コマンド送信、
+  1 つずつ足しては動かす)は PLAN.md に記載。jar 中身を開いての調査は禁止、調査は最初の 1 回のみ。
+- [ ] ① 最小 Appender(行を受け取る) → ビルド → サーバーで確認 → commit
+- [ ] ② リングバッファ (既定 1000 行、ANSI 除去)
+- [ ] ③ GET api/console (SSE、バッファ送信 + リアルタイム配信)
+- [ ] ④ POST api/command (メインスレッドで dispatchCommand) + onDisable で Appender 削除
+- [ ] verify M3 (cycle 7 = 最初の verify 実行) + commit
 
