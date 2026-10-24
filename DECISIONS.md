@@ -23,6 +23,8 @@
 - 再起動方式の既定は **`shutdown`**(`Bukkit.shutdown()` + 外部監視)。理由: `restart()` は
   spigot.yml の `restart-script` が設定されていなければ単に停止するだけ(Javadoc 記載)で、
   外部監視方式の方が動作が予測可能。`restart` も設定で選べる。
+  `SpigotServer` は paper-api のコンパイルパスに含まれないため `restart()` は**反射**で呼び、
+  取得できない場合はログを出して shutdown にフォールバックする (M7, commit 743b076)。
 - MWC の HTTP 既定ポートは **8420**(8080/8081/25565 は使用中)。
 - M3 コンソール: log4j-core は **provided**(実行時は Paper が同梱の log4j 2.24.1 で提供)。
   コンパイルは paper-api が引き込む log4j-api 2.17.1 と同じ系統の core 2.17.1 に対して行う

@@ -82,4 +82,45 @@
     修正: 先に `toRealPath()` で絶対化してから親を辿る
   - verify.sh 側: `curl --data "$data"` は 1 引数 128KB (MAX_ARG_STRLEN) 制限で 1.1MB ボディが
     `Argument list too long` (E2BIG) → 000。`--data-binary @file` (一時ファイル経由) に修正
+  - (後補) NPE 修正後の再実行 1 回 (26/27、E2BIG 起因) の eval 追記を漏れていた → cycle 8 の前例に従い
+    cycle "10.5" として補足行を追加 (ts は当該実行のサーバーログ最終タイムスタンプ 01:19:38 から復元)
+
+## M6 (ファイル管理②: アップロード・削除) — 合格 (cycle 12, commit 743679f)
+- 検証: `timeout 1200 bash scripts/verify.sh M6` → **PASS (20/20 checks、初回)**
+  - アップロード: 新ファイル 200 (sha256 一致) / 上書き無指定 409 / `overwrite=true` 200 + `.bak` 作成
+  - 不正パス 6 種 (`..` 系・絶対パス・エンコード系・制御文字) 400 / 保護対象 `token.key` 403
+  - 削除: confirm なし 400 / confirm あり 200 + ファイル消失 + **`.bak` も消失** /
+    非空 dir 400 / 許可ルート自体 400 / 保護 `MWC.jar` 403
+  - 監査ログ `MWC audit` あり、例外・スタックトレースなし
+- 実装 (commit 743679f):
+  - `FileUploadHandler.kt` (POST api/files/upload): rel を parent/name に分解 → 親を `FileAccess.resolve`
+    → 保護/symlink 403 → 存在 && !overwrite 409 → ボディを `.mwc-up-*.tmp` にストリーム書き込み
+    (> maxUploadSize で 413 + 一時ファイル削除) → overwrite なら `.bak` → ATOMIC_MOVE → audit
+  - `FileDeleteHandler.kt` (DELETE api/files): confirm なし 400 → resolve (404/SecurityEscape 403) →
+    保護 403 → 許可ルート自体 400 → ファイルは削除 + 兄弟 `<name>.bak` も削除 / dir は空のみ
+    (`config.recursiveDelete` 時だけ再帰) → audit
+  - フロント: 行ごとの削除ボタン (2 段階 confirm、X-MWC-Request)、アップロードボタン
+    (file input → fetch で File をそのまま octet-stream POST、409 → 上書き確認 → overwrite=true 再送)
+- 失敗: なし (初回 PASS)。eval 追記時に末尾改行欠如で結合が再発 → その場で python 修正
+  (再発防止策を decisions-log に記録)
+
+## M7 (再起動) — 合格 (cycle 14, commit 743b076)
+- 検証: `timeout 1200 bash scripts/verify.sh M7` → **PASS (8/8 checks)**
+  - `POST api/restart {"confirm":true}` → 200 (先に返却) → 90 秒以内にサーバー停止
+  - 監視側 (verify.sh) が再起動 → ready / **同一トークン**で login 200 (token.key 永続化) /
+    status 200 / 例外・スタックトレースなし
+  - サブパスの素早い確認 (手動): `/api/restart` 404、`/admin/mc/api/restart`・`files/upload`・
+    `files` が認証なし 401 (ルート存在)、login・index 200
+- 実装 (commit 743b076):
+  - `RestartHandler.kt` (POST api/restart): `confirm != true` → 400 → 監査ログ → 200 を先に出してから
+    次のメインスレッド tick で停止。方式は設定 `restart.method` (既定 `shutdown` = `Bukkit.shutdown()`、
+    再起動は外部監視に委任。`restart` は restart-script 方式を**反射**で呼び、使えなければ
+    shutdown にフォールバック — SpigotServer は paper-api のコンパイルパスにないため)
+  - フロント: 「サーバーを再起動」ボタン (confirm ダイアログ付き、送信後ボタン無効化 + 状態表示)
+- 失敗:
+  - cycle 13: コンパイルエラー 2 件 (`runTask` の SAM ラムダが Runnable/Consumer で曖昧 →
+    明示 `Runnable { }`、`org.spigotmc.SpigotServer` がコンパイルパスにない → 反射へ変更)。
+    verify は失敗した package の残りの旧 jar (M6 相当) で走り restart API が 404 → 実測 fail として記録
+
+ALL MILESTONES PASSED
 
