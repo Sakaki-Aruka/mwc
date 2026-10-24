@@ -45,3 +45,19 @@
     未知コマンドは 400 (dispatchCommand が false を返す。例外は投げない — 実測で判明)
 - 副産物: `console.capture-file` 設定 (デバッグ用キャプチャ) は M5/M6 で保護対象 (トークン行を含む)
 
+## M4 (2026-10-24): 最小フロントエンド — 合格 (cycle 9)
+- 検証: `scripts/verify.sh M4` で PASS (cycle 9)。
+  - base `/`: GET / → 200 html / index.html に絶対パスパターンなし / static/app.css・static/app.js が相対解決で 200
+  - base `/admin/mc`: GET /admin/mc/ → 200 html / 参照を `/admin/mc/` 基準で相対解決して 200
+- 実装 (commit eb54424): `web/index.html` + `web/app.js` + `web/app.css`(jar 内リソースとして配信)。
+  - ログインフォーム(POST api/login) → 成功でアプリ表示。401 ならログイン画面に戻る
+  - 状態: api/status を 2 秒毎ポーリング(TPS・avg tick・メモリ・稼働時間・バージョン・人数)
+  - プレイヤー: api/players を 5 秒毎ポーリング(name/uuid/ping/world)
+  - コンソール: `EventSource('api/console')` でバッファ+ライブ表示(表示上限 1000 行)、
+    コマンド入力(POST api/command、X-MWC-Request 付き)
+  - **全 API 呼び出しは相対パス** `api/...`(先頭スラッシュなし)、静的参照は `static/...`
+  - 301 リダイレクト: 末尾スラッシュなしの `{base}` → `{base}/`(相対パスが親ディレクトリ基準で壊れるのを防ぐ)
+- 失敗: cycle 8 (verify.sh 側の URL 構築バグ: サブパス側の参照 URL を `"$BASE/admin/mc/"` と書いていたが
+  `BASE` は既に base-path を含むため二重プレフィックス `/admin/mc/admin/mc/static/...` になって 404)。
+  実装ではなく検証スクリプトのバグ。`"$BASE/"` に修正して cycle 9 で PASS。
+
