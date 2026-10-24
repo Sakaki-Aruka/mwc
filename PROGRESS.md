@@ -61,3 +61,25 @@
   `BASE` は既に base-path を含むため二重プレフィックス `/admin/mc/admin/mc/static/...` になって 404)。
   実装ではなく検証スクリプトのバグ。`"$BASE/"` に修正して cycle 9 で PASS。
 
+## M5 (2026-10-25): ファイル管理① 一覧・閲覧・テキスト編集 — 合格 (cycle 11)
+- 検証: `scripts/verify.sh M5` で PASS (27/27、cycle 11)。
+  - 一覧: GET api/files?path= → 200 array (server.properties・plugins)。plugins 配下に MWC.jar
+  - traversal 6 種 (`..`・`../test-server`・`/etc/passwd`・`..%2F..%2Fetc%2Fpasswd`・`..%5Cwindows`・`config/../../etc`) → 400
+  - 閲覧: server.properties 200。保護対象 (MWC.jar / token.key) 403。symlink (`plugins/mwc-test-link`→/etc) 経由 403
+  - 編集: config/mwc-edit-test.txt 200 + 内容更新 + `.bak` 作成。etag なし/古い etag 409。
+    バイナリの read/edit 415。server.properties 不正内容 400。1.1MB 編集 413
+  - 監査ログ `MWC audit` あり、例外・スタックトレースなし
+- 実装 (commit 6db11e0):
+  - `FileAccess.kt`: パス検証共用。`normalizeRel` (URL decode 後 `\`・`:`・制御文字・先頭 `/`・`..` 拒否)、
+    `resolve` (toRealPath + 許可ルート判定、外は SecurityEscape)、`isProtected` (実パス比較)、
+    `isTextFile` (拡張子リスト + NUL 先頭なし)、`etag = mtime-size`
+  - `FileListHandler` (GET api/files) / `FileReadHandler` (GET api/file、404→400→403→415→200+ETag) /
+    `FileWriteHandler` (PUT api/file、404→400→403→415→413→409→400→.bak+原子リネーム+監査)
+  - フロント: ファイルパネル (一覧・テキストエディタ、相対パス `api/...`、PUT は X-MWC-Request 付き)
+- 失敗:
+  - cycle 10: プラグイン有効化失敗 (NPE @ FileAccess.kt:24)。原因: `plugin.dataFolder` が実行時に
+    **相対パス `plugins/MWC`** だったため `toPath().parent!!.parent!!` で plugins の parent が null。
+    修正: 先に `toRealPath()` で絶対化してから親を辿る
+  - verify.sh 側: `curl --data "$data"` は 1 引数 128KB (MAX_ARG_STRLEN) 制限で 1.1MB ボディが
+    `Argument list too long` (E2BIG) → 000。`--data-binary @file` (一時ファイル経由) に修正
+
