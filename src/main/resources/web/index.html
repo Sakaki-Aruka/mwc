@@ -31,6 +31,15 @@
   </section>
 
   <section class="panel">
+    <h2>サーバー</h2>
+    <div id="server-bar">
+      <button id="restart-btn" type="button" class="danger">サーバーを再起動</button>
+      <span id="restart-status" class="file-status"></span>
+    </div>
+    <p class="hint">再起動は外部の監視 (systemd / Docker / 検証スクリプト) が完了するまで数秒〜十数秒かかります。</p>
+  </section>
+
+  <section class="panel">
     <h2>プレイヤー</h2>
     <table id="players">
       <thead>

@@ -73,5 +73,7 @@ class MwcPlugin : JavaPlugin() {
         h.handlers["POST files/upload"] = { ex, _ -> fileUpload.handle(ex) }
         val fileDelete = FileDeleteHandler(fa, config, auth)
         h.handlers["DELETE files"] = { ex, _ -> fileDelete.handle(ex) }
+        val restart = RestartHandler(this)
+        h.handlers["POST restart"] = { ex, _ -> restart.handle(ex) }
     }
 }

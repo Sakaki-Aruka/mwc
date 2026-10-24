@@ -35,6 +35,10 @@ td.empty { color: #9aa3b2; font-style: italic; }
 #cmd-form input { flex: 1; padding: .5rem .6rem; font-family: ui-monospace, monospace; background: #101216; border: 1px solid #2a2f3a; color: inherit; border-radius: 4px; }
 button { padding: .5rem 1rem; cursor: pointer; background: #33507e; color: #fff; border: 0; border-radius: 4px; }
 button:hover { background: #40639c; }
+button.danger { background: #8e3b3b; }
+button.danger:hover { background: #b04c4c; }
+button.danger:disabled, button:disabled { opacity: .5; cursor: default; }
+.hint { font-size: .8rem; color: #999; margin: .5rem 0 0; }
 
 #file-bar { display: flex; align-items: center; gap: .5rem; margin-bottom: .5rem; }
 .file-path { flex: 1; font-family: ui-monospace, monospace; font-size: .85rem; color: #7ec699; }

@@ -96,6 +96,30 @@
     }).catch(function () { statusEl.textContent = '状態の取得に失敗しました'; });
   }
 
+  // ---------- restart ----------
+
+  function setRestartStatus(text, bad) {
+    var el = $('restart-status');
+    el.textContent = text;
+    el.classList.toggle('err', !!bad);
+  }
+
+  $('restart-btn').addEventListener('click', function () {
+    if (!window.confirm('サーバーを再起動しますか？\n全プレイヤーが切断され、復帰まで十数秒かかります。')) return;
+    $('restart-btn').disabled = true;
+    setRestartStatus('再起動しています…', false);
+    postJson('api/restart', { confirm: true }).then(function (res) {
+      if (!res.ok) {
+        setRestartStatus('再起動の送信に失敗 (' + res.status + ')', true);
+        $('restart-btn').disabled = false;
+        return;
+      }
+      setRestartStatus('再起動中です。サーバー復帰までお待ちください。', false);
+    }).catch(function () {
+      setRestartStatus('サーバーと通信できません', true);
+    });
+  });
+
   // ---------- players (poll every 5s) ----------
 
   function pollPlayers() {
