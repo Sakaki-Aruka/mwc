@@ -1,0 +1,16 @@
+# build
+target/
+
+# verification server (フェーズ0で人間が用意。コミットしない)
+test-server/
+
+# temporary
+tmp/
+
+# secrets(値を置かない)
+.env
+
+# editor
+.idea/
+*.iml
+.vscode/
