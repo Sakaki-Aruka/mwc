@@ -1,0 +1,111 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+
+  <groupId>online.aruka.mwc</groupId>
+  <artifactId>mwc</artifactId>
+  <version>0.1.0</version>
+  <packaging>jar</packaging>
+
+  <name>MWC</name>
+  <description>Minecraft Web Console (minimal MCDash-like plugin for Paper 1.21.4)</description>
+
+  <properties>
+    <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+    <kotlin.version>2.0.21</kotlin.version>
+    <kotlin.code.style>official</kotlin.code.style>
+  </properties>
+
+  <repositories>
+    <repository>
+      <id>papermc</id>
+      <url>https://repo.papermc.io/repository/maven-public/</url>
+    </repository>
+  </repositories>
+
+  <dependencies>
+    <dependency>
+      <groupId>io.papermc.paper</groupId>
+      <artifactId>paper-api</artifactId>
+      <version>1.21.4-R0.1-SNAPSHOT</version>
+      <scope>provided</scope>
+    </dependency>
+    <!-- bundled into the jar via maven-shade-plugin (relocated), see DECISIONS.md -->
+    <dependency>
+      <groupId>org.jetbrains.kotlin</groupId>
+      <artifactId>kotlin-stdlib</artifactId>
+      <version>${kotlin.version}</version>
+    </dependency>
+  </dependencies>
+
+  <build>
+    <finalName>MWC</finalName>
+    <sourceDirectory>src/main/kotlin</sourceDirectory>
+    <resources>
+      <resource>
+        <directory>src/main/resources</directory>
+        <filtering>true</filtering>
+      </resource>
+    </resources>
+    <plugins>
+      <plugin>
+        <groupId>org.jetbrains.kotlin</groupId>
+        <artifactId>kotlin-maven-plugin</artifactId>
+        <version>${kotlin.version}</version>
+        <configuration>
+          <jvmTarget>21</jvmTarget>
+        </configuration>
+        <executions>
+          <execution>
+            <id>compile</id>
+            <phase>compile</phase>
+            <goals>
+              <goal>compile</goal>
+            </goals>
+          </execution>
+        </executions>
+      </plugin>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-shade-plugin</artifactId>
+        <version>3.6.0</version>
+        <executions>
+          <execution>
+            <phase>package</phase>
+            <goals>
+              <goal>shade</goal>
+            </goals>
+            <configuration>
+              <createDependencyReducedPom>false</createDependencyReducedPom>
+              <relocations>
+                <relocation>
+                  <pattern>kotlin</pattern>
+                  <shadedPattern>online.aruka.mwc.libs.kotlin</shadedPattern>
+                </relocation>
+                <relocation>
+                  <pattern>org.jetbrains</pattern>
+                  <shadedPattern>online.aruka.mwc.libs.org.jetbrains</shadedPattern>
+                </relocation>
+              </relocations>
+              <filters>
+                <filter>
+                  <artifact>*:*</artifact>
+                  <excludes>
+                    <exclude>META-INF/*.SF</exclude>
+                    <exclude>META-INF/*.DSA</exclude>
+                    <exclude>META-INF/*.RSA</exclude>
+                    <exclude>META-INF/LICENSE*</exclude>
+                    <exclude>META-INF/NOTICE*</exclude>
+                    <exclude>module-info.class</exclude>
+                  </excludes>
+                </filter>
+              </filters>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
+    </plugins>
+  </build>
+</project>

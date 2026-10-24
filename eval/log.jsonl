@@ -1,0 +1,2 @@
+{"ts": "2026-10-24T19:34:22+09:00", "cycle": 1, "milestone": "M0", "result": "fail", "note": "verify.sh bug: m0_checks did not start the server (log_check had no log file). Implementation was fine; script fixed."}
+{"ts": "2026-10-24T19:34:22+09:00", "cycle": 2, "milestone": "M0", "result": "pass", "note": "mvn package OK; MWC.jar enabled on Paper 1.21.4-232; no exceptions."}

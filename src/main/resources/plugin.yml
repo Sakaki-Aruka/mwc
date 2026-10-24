@@ -1,0 +1,6 @@
+name: MWC
+version: '${project.version}'
+main: online.aruka.mwc.MwcPlugin
+description: Minecraft Web Console - minimal web dashboard for Paper
+author: aruka
+api-version: '1.21.4'

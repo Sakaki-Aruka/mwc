@@ -1,26 +1,31 @@
 # PLAN
 
-## 現在のマイルストーン: M0 (Maven + Kotlin の雛形)
+## 現在のマイルストーン: M1 (HTTP サーバー + base-path + 認証 + 状態 API)
 
-### M0 タスク
-- [x] 環境確認 (check-env.sh --agent 全項目 OK、2026-10-24)
-- [x] git init / .gitignore / README.md
-- [x] Paper docs で Java 21 / api-version '1.21.4' / Maven 座標を確認し DECISIONS.md へ記録
-- [ ] pom.xml (Kotlin + kotlin-maven-plugin, paper-api 1.21.4-R0.1-SNAPSHOT compileOnly, maven-shade-plugin で kotlin-stdlib 同梱)
-- [ ] plugin.yml (name: MWC, main: online.aruka.mwc.MwcPlugin, api-version: '1.21.4')
-- [ ] MwcPlugin 雛形 (onEnable でログ出力)
-- [ ] scripts/run-test-server.sh (start/stop/loop、fifo 経由で stop 送信)
-- [ ] scripts/verify.sh (ビルド→配置→起動→HTTP確認→停止、M 引数でチェック項目切替)
-- [ ] mvn package 成功
-- [ ] test-server に配置して有効化されることを確認 (verify.sh M0)
+### M1 タスク
+- [x] M0 完了 (2026-10-24): pom/kotlin 雛形・verify.sh・run-test-server.sh・有効化確認
+- [ ] Http.kt: com.sun.net.httpserver 起動。context は base-path 配下 1 つのみ登録。
+      - base-path `/` のとき context `/`、それ以外は context `"$bp/api"` + 静的/ルート用 context `$bp`
+      - リクエストはすべて base-path 配下のみ (base 外は 404 になること: context がマッチしないため)
+- [ ] Auth.kt: トークン生成 (SecureRandom 32byte base64url) + token.key 永続化 (plugins/MWC/)
+      - 初回生成時はコンソールに一度だけ表示
+      - POST {bp}/api/login {token} -> HttpOnly/SameSite=Strict Cookie (Path=bp)
+      - Cookie セッションの検証 (メモリ map: cookieToken -> 有効期限)
+      - レート制限: IP ごとの失敗カウント (5 回で 60 秒ブロック)
+      - CSRF: 状態変更メソッド (POST/PUT/DELETE) はヘッダ X-MWC-Request: mwc 必須
+- [ ] StatusHandler: GET {bp}/api/status -> tps[]/avg_tick_time_ms/memory/uptime_seconds/version/players_online/players_max
+      (Bukkit API はメインスレッドで取得: scheduler + CountDownLatch)
+- [ ] MwcPlugin: onEnable で設定読込・トークン生成・HTTP 起動。onDisable で停止
+- [ ] verify M1 (base-path / と /admin/mc の 2 回起動) で合格
 - [ ] commit
 
-### 次: M1 (HTTP サーバー + base-path + 認証 + 状態 API)
-タスクは M0 完了時に分解してここに書き直す。
+### 次: M2 (プレイヤー API)
+- [ ] PlayersHandler: GET {bp}/api/players -> [{name, uuid, ping, world}] (0 人なら空配列)
+- [ ] verify M2 + commit
 
 ## マイルストーン進捗 (詳細は PROGRESS.md)
-- [ ] M0 Maven + Kotlin 雛形 ← 現在
-- [ ] M1 HTTP + base-path + 認証 + 状態 API
+- [x] M0 Maven + Kotlin 雛形
+- [ ] M1 HTTP + base-path + 認証 + 状態 API ← 現在
 - [ ] M2 プレイヤー API
 - [ ] M3 コンソール (SSE + コマンド送信)
 - [ ] M4 最小フロントエンド
