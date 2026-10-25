@@ -18,6 +18,9 @@
 .conn-ok { color: var(--bs-success-text-emphasis); }
 .conn-bad { color: var(--bs-warning-text-emphasis); }
 
+/* 再起動ボタンは赤地の白文字で、マウスを載せるとオレンジ地になる */
+#restart-btn { --bs-btn-hover-bg: var(--bs-orange); --bs-btn-hover-border-color: var(--bs-orange); --bs-btn-hover-color: #000; --bs-btn-active-bg: #ca6510; --bs-btn-active-border-color: #ca6510; --bs-btn-active-color: #000; }
+
 .console { flex: 1; min-height: 0; overflow-y: auto; background: #0d0f12; padding: .5rem .6rem; font-family: var(--bs-font-monospace); font-size: .8rem; line-height: 1.45; white-space: pre-wrap; word-break: break-all; }
 .console .line.cmd { color: var(--bs-success-text-emphasis); }
 .console .line.err { color: var(--bs-danger-text-emphasis); }
