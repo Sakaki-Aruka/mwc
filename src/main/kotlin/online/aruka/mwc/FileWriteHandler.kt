@@ -69,7 +69,9 @@ class FileWriteHandler(
                 send(ex, 413, "application/json", """{"error":"too large"}""")
                 return
             }
+            // 読み込み時の ETag ヘッダの値をそのまま受け取る (ブラウザは引用符付きで送る。弱い ETag の W/ も外す)
             val etag = obj.get("etag")?.takeIf { !it.isJsonNull }?.asString
+                ?.trim()?.removePrefix("W/")?.removeSurrounding("\"")
             if (etag == null) {
                 send(ex, 409, "application/json", """{"error":"etag required"}""")
                 return
