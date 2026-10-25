@@ -88,7 +88,7 @@
         var tps = Array.prototype.map.call(s.tps || [], function (v) { return Number(v).toFixed(1); }).join(' / ');
         statusEl.textContent =
           'TPS: ' + (tps || '?') +
-          '  (avg tick ' + s.avg_tick_time_ms + ' ms)    ' +
+          '  (avg tick ' + Number(s.avg_tick_time_ms).toFixed(2) + ' ms)    ' +
           'Memory: ' + s.memory_used_mb + ' / ' + s.memory_max_mb + ' MB    ' +
           'Uptime: ' + fmtUptime(s.uptime_seconds) + '    ' +
           'Version: ' + s.version + '    ' +
@@ -291,7 +291,8 @@
             ev.stopPropagation();
             deleteEntry(joinPath(fileState.path, f.name), f.type);
           });
-          act.appendChild(del);
+          // 許可ルートそのもの(一番上の一覧)は削除できないので、ボタンを出さない
+          if (fileState.path) act.appendChild(del);
           tr.appendChild(name); tr.appendChild(type); tr.appendChild(size); tr.appendChild(mtime); tr.appendChild(act);
           tr.addEventListener('click', function () {
             var rel = joinPath(fileState.path, f.name);

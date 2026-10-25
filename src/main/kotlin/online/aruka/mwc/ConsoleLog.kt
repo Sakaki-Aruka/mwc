@@ -23,7 +23,7 @@ class ConsoleLog(private val plugin: MwcPlugin) {
         override fun append(event: LogEvent) {
             try {
                 val msg = event.message?.formattedMessage ?: return
-                onLine(msg)
+                onLine(format(event, msg))
             } catch (_: Throwable) {
                 // メインのログ出力には影響させない
             }
@@ -114,6 +114,26 @@ class ConsoleLog(private val plugin: MwcPlugin) {
         writeCapture(line)
     }
 
+    /**
+     * サーバーのコンソールに近い形にする: `[HH:mm:ss LEVEL]: [プラグイン名] 本文`。
+     * 例外が付いていれば、スタックトレースを続けて付ける (先頭 [MAX_TRACE] 行)。
+     */
+    private fun format(event: LogEvent, msg: String): String {
+        val sb = StringBuilder()
+        sb.append('[').append(TIME.format(java.time.Instant.ofEpochMilli(event.timeMillis)))
+            .append(' ').append(event.level?.name() ?: "INFO").append("]: ")
+        // プラグインのロガー名 (例 "MWC") だけを付ける。Minecraft 本体のロガー名 (パッケージ名) は付けない
+        val name = event.loggerName.orEmpty()
+        if (name.isNotEmpty() && '.' !in name && name != "Minecraft") sb.append('[').append(name).append("] ")
+        sb.append(msg)
+        event.thrown?.let { t ->
+            val lines = t.stackTraceToString().trimEnd().lines()
+            for (l in lines.take(MAX_TRACE)) sb.append('\n').append(l)
+            if (lines.size > MAX_TRACE) sb.append("\n\t... ").append(lines.size - MAX_TRACE).append(" more")
+        }
+        return sb.toString()
+    }
+
     /** ANSI エスケープシーケンス (CSI / OSC / 単一エスケープ) を除去する */
     private fun stripAnsi(s: String): String = if ('\u001B' in s) ANSI_RE.replace(s, "") else s
 
@@ -144,6 +164,8 @@ class ConsoleLog(private val plugin: MwcPlugin) {
     companion object {
         private const val APPENDER_NAME = "MwcConsoleCapture"
         private const val MAX_CAPTURE = 1L * 1024 * 1024
+        private const val MAX_TRACE = 40
+        private val TIME = java.time.format.DateTimeFormatter.ofPattern("HH:mm:ss").withZone(java.time.ZoneId.systemDefault())
 
         // CSI (\x1B[ ... 終端文字) / OSC (\x1B] ... BEL | \x1B\) / 単一エスケープ (\x1B X)
         private val ANSI_RE = Regex(
