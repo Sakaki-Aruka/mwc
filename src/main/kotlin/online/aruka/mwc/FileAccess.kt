@@ -14,11 +14,11 @@ import java.nio.file.Path
  *
  * すべてのファイル操作(一覧・閲覧・編集・アップロード・削除)は
  * [normalizeRel] + [resolve] を通すこと:
- *  - URL デコード後に `\`・`:`・制御文字・先頭 `/`・`..` セグメントを拒否
- *  - 正規化後は許可ルート (file-manager.roots) 配下であること
+ *  - `\`・`:`・制御文字・先頭 `/`・`..` セグメントを拒否
+ *  - 正規化後は許可ルート (file-manager.roots) 配下であること。サーバーディレクトリ自体は許可ルートではない
  *  - シンボリックリンク解決 (toRealPath) 後も許可ルート配下であること
  */
-class FileAccess(private val plugin: MwcPlugin, private val config: MwcConfig) {
+class FileAccess(private val plugin: MwcPlugin, val config: MwcConfig) {
 
     /**
      * サーバーディレクトリ (plugins/MWC の親の親。実パス)。
@@ -32,36 +32,39 @@ class FileAccess(private val plugin: MwcPlugin, private val config: MwcConfig) {
 
     private val dataFolderReal: Path = plugin.dataFolder.toPath().toRealPath()
 
+    /** 自プラグインの jar (実パス)。ファイル名は利用者が変えることがあるので名前では決めない */
+    private val ownJarReal: Path? = try {
+        plugin.jarFile.toPath().toRealPath()
+    } catch (_: Exception) {
+        null
+    }
+
     /** パスが許可ルート外に出た場合 (シンボリックリンク経由を含む) */
     class SecurityEscape(val requested: String) : RuntimeException(requested)
 
     /**
-     * クエリパラメータ `path` を解析・検証する。
+     * クエリパラメータ `path` ([queryParam] でデコード済み。ここで再デコードしない) を検証する。
      * 正規化した相対パス (先頭 / なし・`..` なし) を返す。不正なら null。
      * 空/未指定 → "" (ルート一覧)。
      */
     fun normalizeRel(raw: String?): String? {
         if (raw == null || raw.isBlank()) return ""
-        val decoded = try {
-            URLDecoder.decode(raw, StandardCharsets.UTF_8)
-        } catch (_: Exception) {
-            return null
+        if (raw.startsWith("/")) return null
+        for (ch in raw) {
+            if (ch == '\\' || ch == ':' || ch.code < 32 || ch.code == 127) return null
         }
-        if (decoded.startsWith("/")) return null
-        for (ch in decoded) {
-            if (ch == '\\' || ch == ':' || ch.code < 32) return null
-        }
-        val parts = decoded.split('/').filter { it.isNotEmpty() }
+        val parts = raw.split('/').filter { it.isNotEmpty() }
         for (p in parts) if (p == "..") return null
         return parts.joinToString("/")
     }
 
     /**
      * [rel] (normalizeRel 済み) を実パスに解決する。
-     * @return 存在しなければ null。許可ルート外は [SecurityEscape] を送出。
+     * @return 存在しなければ null。許可ルート外 ("" = サーバーディレクトリ自体を含む) は [SecurityEscape] を送出。
      */
     fun resolve(rel: String): Path? {
-        val target = if (rel.isEmpty()) serverRoot else serverRoot.resolve(rel)
+        if (rel.isEmpty()) throw SecurityEscape(rel)
+        val target = serverRoot.resolve(rel)
         val real = try {
             target.toRealPath()
         } catch (_: Exception) {
@@ -71,8 +74,8 @@ class FileAccess(private val plugin: MwcPlugin, private val config: MwcConfig) {
         return real
     }
 
-    private fun isUnderRoot(real: Path): Boolean {
-        if (real == serverRoot) return true
+    /** [real] が許可ルートそのものかその配下か (まだ存在しないパスはリンク解決済みの親と名前で渡す) */
+    fun isUnderRoot(real: Path): Boolean {
         for (root in fileRoots) {
             val relRoot = serverRoot.resolve(root).normalize()
             val realRoot = try {
@@ -89,7 +92,7 @@ class FileAccess(private val plugin: MwcPlugin, private val config: MwcConfig) {
     /** 保護対象: 自プラグインの認証トークンファイル・自 jar・ログキャプチャファイル */
     fun isProtected(real: Path): Boolean {
         if (real == dataFolderReal.resolve("token.key")) return true
-        if (real == dataFolderReal.parent.resolve("MWC.jar")) return true
+        if (ownJarReal != null && real == ownJarReal) return true
         val cap = config.captureFile
         if (cap.isNotEmpty() && real == dataFolderReal.resolve(cap)) return true
         return false

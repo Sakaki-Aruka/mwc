@@ -6,7 +6,7 @@ import java.nio.file.Path
 
 /**
  * GET {base}/api/file?path=<rel> — テキストファイルの内容 + ETag。
- * バイナリ(拡張子・NUL・非 UTF-8)は 415。保護対象は 403。
+ * バイナリ(拡張子・NUL・非 UTF-8)は 415。保護対象は 403。編集の上限 (max-edit-size) を超えるものは 413。
  */
 class FileReadHandler(private val fa: FileAccess) {
 
@@ -32,6 +32,10 @@ class FileReadHandler(private val fa: FileAccess) {
             }
             if (!fa.isTextFile(real)) {
                 send(ex, 415, "application/json", """{"error":"binary file"}""")
+                return
+            }
+            if (Files.size(real) > fa.config.maxEditSize) {
+                send(ex, 413, "application/json", """{"error":"too large to edit"}""")
                 return
             }
             val bytes = Files.readAllBytes(real)

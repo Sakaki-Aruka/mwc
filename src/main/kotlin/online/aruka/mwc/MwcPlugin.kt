@@ -21,6 +21,10 @@ class MwcPlugin : JavaPlugin() {
 
     val startMs: Long = System.currentTimeMillis()
 
+    /** このプラグインの jar (保護対象。利用者が改名していても実体で判定する) */
+    val jarFile: java.io.File
+        get() = file
+
     override fun onEnable() {
         config = MwcConfig(this)
         config.load()

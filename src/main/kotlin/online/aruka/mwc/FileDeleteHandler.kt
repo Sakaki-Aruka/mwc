@@ -7,8 +7,9 @@ import java.nio.file.Files
  * DELETE {base}/api/files?path=<rel>&confirm=true
  *
  * 削除は不可逆のため API 側でも confirm=true を要求 (なしは 400)。
- *  - ファイル: 削除 + 兄弟の <name>.bak も一緒に削除
- *  - ディレクトリ: 既定では空ディレクトリのみ (recursive-delete で再帰を有効化)
+ *  - ファイル: 指定したものだけを削除する (.bak は残す。消すなら別に指定する)
+ *  - シンボリックリンク (リンク先が許可ルート内のもの): リンク自体を削除し、リンク先は残す
+ *  - ディレクトリ: 既定では空ディレクトリのみ (recursive-delete で再帰を有効化。再帰でもリンクはたどらない)
  *  - 許可ルートそのもの・保護対象は削除不可
  */
 class FileDeleteHandler(
@@ -41,6 +42,13 @@ class FileDeleteHandler(
                 send(ex, 400, "application/json", """{"error":"cannot delete root"}""")
                 return
             }
+            val link = fa.serverRoot.resolve(rel)
+            if (Files.isSymbolicLink(link)) {
+                Files.delete(link)
+                auth.audit(ex, "delete", "$rel (symlink)", 0L)
+                send(ex, 200, "application/json", """{"ok":true}""")
+                return
+            }
             val size = if (Files.isDirectory(real)) 0L else Files.size(real)
             if (Files.isDirectory(real)) {
                 val empty = Files.newDirectoryStream(real).use { it.iterator().hasNext().not() }
@@ -54,15 +62,11 @@ class FileDeleteHandler(
                 }
             } else {
                 Files.delete(real)
-                // 編集・上書きで作られた <name>.bak も一緒に片付ける
-                Files.deleteIfExists(real.resolveSibling(real.fileName.toString() + ".bak"))
             }
-            auth.audit("delete", rel, size)
+            auth.audit(ex, "delete", rel, size)
             send(ex, 200, "application/json", """{"ok":true}""")
         } catch (e: FileAccess.SecurityEscape) {
             send(ex, 403, "application/json", """{"error":"forbidden"}""")
-        } catch (_: Exception) {
-            send(ex, 500, "application/json", """{"error":"internal error"}""")
         }
     }
 
@@ -80,10 +84,11 @@ class FileDeleteHandler(
         return false
     }
 
+    /** 再帰削除。シンボリックリンクはたどらずリンク自体を消す (リンク先がルート外でも中身は消さない) */
     private fun deleteRecursively(p: java.nio.file.Path) {
         Files.newDirectoryStream(p).use { ds ->
             for (child in ds) {
-                if (Files.isDirectory(child)) deleteRecursively(child)
+                if (Files.isDirectory(child, java.nio.file.LinkOption.NOFOLLOW_LINKS)) deleteRecursively(child)
                 Files.deleteIfExists(child)
             }
         }
