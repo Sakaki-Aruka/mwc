@@ -65,6 +65,9 @@ class MwcHttp(private val plugin: MwcPlugin, private val config: MwcConfig, priv
                 return
             }
             handleAuthed(ex, method, route)
+        } catch (e: MainThread.Unavailable) {
+            // サーバーの停止中 (再起動の直後に画面が状態を取りに来たときなど)。異常ではない
+            trySend(ex, 503, """{"error":"server is stopping"}""")
         } catch (e: java.io.IOException) {
             // クライアントの切断 (アップロードの中断、応答前にタブを閉じた等)。サーバーの異常ではない
             plugin.logger.info("MWC: request aborted: ${ex.requestMethod} ${ex.requestURI.rawPath}: ${e.javaClass.simpleName}: ${e.message}")
@@ -209,21 +212,37 @@ fun org.bukkit.plugin.java.JavaPlugin.resourceString(name: String): String? =
 
 /** Bukkit API はメインスレッドで呼ぶためのブリッジ (HTTP スレッドから呼ぶ)。 */
 object MainThread {
+    /** 停止中などでメインスレッドが処理を受け付けない (HTTP は 503 を返す) */
+    class Unavailable(msg: String) : RuntimeException(msg)
+
     fun <T> call(plugin: org.bukkit.plugin.java.JavaPlugin, timeoutMs: Long, action: () -> T): T {
         if (org.bukkit.Bukkit.isPrimaryThread()) return action()
+        if (!plugin.isEnabled || org.bukkit.Bukkit.isStopping()) throw Unavailable("server is stopping")
         val resultRef = java.util.concurrent.atomic.AtomicReference<Any?>()
         val errorRef = java.util.concurrent.atomic.AtomicReference<Throwable?>()
         val latch = java.util.concurrent.CountDownLatch(1)
-        org.bukkit.Bukkit.getScheduler().runTask(plugin, Runnable {
-            try {
-                resultRef.set(action())
-            } catch (t: Throwable) {
-                errorRef.set(t)
-            } finally {
-                latch.countDown()
-            }
-        })
-        if (!latch.await(timeoutMs, TimeUnit.MILLISECONDS)) {
+        try {
+            org.bukkit.Bukkit.getScheduler().runTask(plugin, Runnable {
+                try {
+                    resultRef.set(action())
+                } catch (t: Throwable) {
+                    errorRef.set(t)
+                } finally {
+                    latch.countDown()
+                }
+            })
+        } catch (e: org.bukkit.plugin.IllegalPluginAccessException) {
+            throw Unavailable("plugin is disabled")
+        }
+        val done = try {
+            latch.await(timeoutMs, TimeUnit.MILLISECONDS)
+        } catch (e: InterruptedException) {
+            // onDisable で HTTP のスレッドが止められた
+            Thread.currentThread().interrupt()
+            throw Unavailable("interrupted while the server is stopping")
+        }
+        if (!done) {
+            if (org.bukkit.Bukkit.isStopping()) throw Unavailable("server is stopping")
             throw java.util.concurrent.TimeoutException("main thread task timed out after ${timeoutMs}ms")
         }
         errorRef.get()?.let { throw RuntimeException("main thread task failed", it) }
