@@ -32,7 +32,10 @@
 
   function showApp() {
     inApp = true;
+    // 再起動の後にログインし直したとき、前の状態表示を残さない
     $('restart-btn').disabled = false;
+    setRestartStatus('', false);
+    setFileMsg('', false);
     loginView.classList.add('hidden');
     appView.classList.remove('hidden');
     connectSse();
