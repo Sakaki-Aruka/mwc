@@ -47,6 +47,7 @@ button.danger:disabled, button:disabled { opacity: .5; cursor: default; }
 .file-del:hover { background: #9c4052; }
 .file-status { flex: 1; font-size: .8rem; color: #7ec699; }
 .file-status.err { color: #ff6b6b; }
+#file-msg { margin: 0 0 .4rem; min-height: 1.2em; }
 #file-editor { margin-top: .75rem; border-top: 1px solid #2a2f3a; padding-top: .5rem; }
 #file-editor-bar { display: flex; align-items: center; gap: .5rem; margin-bottom: .4rem; font-size: .85rem; }
 #file-editor-name { font-family: ui-monospace, monospace; }

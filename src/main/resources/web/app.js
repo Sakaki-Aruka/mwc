@@ -32,6 +32,7 @@
 
   function showApp() {
     inApp = true;
+    $('restart-btn').disabled = false;
     loginView.classList.add('hidden');
     appView.classList.remove('hidden');
     connectSse();
@@ -170,7 +171,8 @@
   function connectSse() {
     closeSse();
     es = new EventSource('api/console');
-    es.onopen = function () { setConn('connected', false); };
+    // 接続のたびにサーバーがバッファ全体を送り直すので、表示を空にしてから受け取る(再接続で行が重複しない)
+    es.onopen = function () { consoleEl.replaceChildren(); setConn('connected', false); };
     es.onmessage = function (ev) { appendLine(ev.data); };
     es.onerror = function () { setConn('reconnecting…', true); };
   }
@@ -219,11 +221,22 @@
 
   function fileEl(id) { return $(id); }
 
+  // エディタ内の状態表示(読み込み・保存)
   function setFileStatus(text, bad) {
     var el = fileEl('file-editor-status');
     el.textContent = text;
     el.classList.toggle('err', !!bad);
   }
+
+  // 一覧の上の状態表示(アップロード・削除)。エディタを閉じていても見える
+  function setFileMsg(text, bad) {
+    var el = fileEl('file-msg');
+    el.textContent = text;
+    el.classList.toggle('err', !!bad);
+  }
+
+  // 既定の許可ルート(server.properties・bukkit.yml・spigot.yml・config/・plugins/)の変更は、どれも再起動で反映される
+  var RESTART_NOTE = '(サーバーの再起動後に反映されます)';
 
   function renderPath() {
     var el = fileEl('file-path');
@@ -307,7 +320,8 @@
     api('api/file?path=' + encodeURIComponent(rel)).then(function (res) {
       if (!res.ok) {
         var msg = { 403: '保護対象のため閲覧できません', 404: 'ファイルが見つかりません',
-                     415: 'テキストファイルのみ編集できます', 400: '読み込めません' }[res.status] || ('エラー ' + res.status);
+                     413: 'サイズが大きすぎるため編集できません', 415: 'テキストファイルのみ編集できます',
+                     400: '読み込めません' }[res.status] || ('エラー ' + res.status);
         setFileStatus(msg, true);
         return;
       }
@@ -337,7 +351,7 @@
       body: JSON.stringify({ content: fileEl('file-content').value, etag: fileState.etag })
     }).then(function (res) {
       if (res.ok) {
-        setFileStatus('保存しました', false);
+        setFileStatus('保存しました' + ' ' + RESTART_NOTE, false);
         listFiles();
         // 保存後の ETag を取り直す
         api('api/file?path=' + encodeURIComponent(fileState.editing)).then(function (r2) {
@@ -389,7 +403,7 @@
     var name = file.name;
     var dest = joinPath(dir, name);
     fileState.busy = true;
-    setFileStatus('アップロード中…', false);
+    setFileMsg('アップロード中…', false);
     function doUpload(overwrite) {
       var url = 'api/files/upload?path=' + encodeURIComponent(dest) + (overwrite ? '&overwrite=true' : '');
       return api(url, {
@@ -398,7 +412,8 @@
         body: file
       }).then(function (res) {
         if (res.ok) {
-          setFileStatus('アップロードしました (' + fmtSize(file.size) + ')', false);
+          setFileMsg('アップロードしました: ' + dest + ' (' + fmtSize(file.size) + ')' +
+            ' ' + RESTART_NOTE, false);
           listFiles();
           return;
         }
@@ -407,13 +422,13 @@
           if (window.confirm('"' + name + '" は既に存在します。上書きしますか?\n(上書き前に .bak が作成されます)')) {
             return doUpload(true);
           }
-          setFileStatus('アップロードをキャンセルしました', false);
+          setFileMsg('アップロードをキャンセルしました', false);
           return;
         }
         return res.json().catch(function () { return {}; }).then(function (j) {
-          setFileStatus('アップロード失敗: ' + (j.error || res.status), true);
+          setFileMsg('アップロード失敗: ' + (j.error || res.status), true);
         });
-      }).catch(function () { setFileStatus('アップロード失敗(通信エラー)', true); })
+      }).catch(function () { setFileMsg('アップロード失敗(通信エラー)', true); })
         .then(function () { fileState.busy = false; });
     }
     doUpload(false);
@@ -430,14 +445,15 @@
       headers: { 'X-MWC-Request': 'mwc' }
     }).then(function (res) {
       if (res.ok) {
-        setFileStatus('削除しました', false);
+        setFileMsg('削除しました: ' + rel + ' ' + RESTART_NOTE, false);
+        if (fileState.editing === rel) closeEditor();
         listFiles();
         return;
       }
       return res.json().catch(function () { return {}; }).then(function (j) {
-        setFileStatus('削除失敗: ' + (j.error || res.status), true);
+        setFileMsg('削除失敗: ' + (j.error || res.status), true);
       });
-    }).catch(function () { setFileStatus('削除失敗(通信エラー)', true); })
+    }).catch(function () { setFileMsg('削除失敗(通信エラー)', true); })
       .then(function () { fileState.busy = false; });
   }
 

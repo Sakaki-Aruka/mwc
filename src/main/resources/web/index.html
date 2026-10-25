@@ -36,7 +36,7 @@
       <button id="restart-btn" type="button" class="danger">サーバーを再起動</button>
       <span id="restart-status" class="file-status"></span>
     </div>
-    <p class="hint">再起動は外部の監視 (systemd / Docker / 検証スクリプト) が完了するまで数秒〜十数秒かかります。</p>
+    <p class="hint">既定の方式 (shutdown) ではサーバーが停止し、systemd や Docker などの外部の監視が起動し直します。監視がない環境では停止したままになります。</p>
   </section>
 
   <section class="panel">
@@ -67,6 +67,8 @@
       <button id="file-upload-btn" type="button">アップロード</button>
       <input id="file-upload-input" type="file" class="hidden">
     </div>
+    <p id="file-msg" class="file-status" role="status"></p>
+    <p class="hint">server.properties などの設定の変更や、プラグイン jar のアップロード・削除は、サーバーの再起動後に反映されます。</p>
     <table id="files">
       <thead>
         <tr><th>名前</th><th>種別</th><th>サイズ</th><th>更新日時</th><th></th></tr>
