@@ -14,7 +14,7 @@ if timeout 900 mvn -B -q package >tmp/verify-mvn.log 2>&1; then
 else
   echo "FAIL mvn package"; tail -30 tmp/verify-mvn.log; exit 1
 fi
-[[ -f target/MWC.jar ]] || { echo "FAIL target/MWC.jar missing"; exit 1; }
+JAR=$(ls -t target/MWC-*.jar 2>/dev/null | head -1); [[ -n $JAR ]] || { echo "FAIL target/MWC-*.jar missing"; exit 1; }
 
 echo "== deploy + start (capture-file = mwc-capture.log) =="
 rm -rf "$TDIR/plugins/MWC"
@@ -25,7 +25,7 @@ http:
 console:
   capture-file: mwc-capture.log
 EOF
-cp -f target/MWC.jar "$TDIR/plugins/MWC.jar"
+cp -f "$JAR" "$TDIR/plugins/MWC.jar"
 rm -f "$TDIR/plugins/MWC/mwc-capture.log"
 mwc_server_start
 mwc_server_wait_ready 180 || { echo "FAIL server startup"; mwc_server_stop 2>/dev/null; exit 1; }

@@ -1,7 +1,6 @@
 # MWC (Minecraft Web Console)
 
 Paper 1.21.4 向けの最小 Web ダッシュボードプラグイン。
-MCDash の必須機能のみの自家再実装(参考実装のコード・名称・ロゴは流用しない)。
 
 ## 機能
 - コンソール表示(ログの SSE リアルタイム配信 + コマンド送信)
@@ -15,11 +14,11 @@ MCDash の必須機能のみの自家再実装(参考実装のコード・名称
 ## ビルド
 Java 21 と Maven が必要。
 ```
-mvn package        # -> target/MWC.jar(Kotlin の標準ライブラリを同梱)
+mvn package        # -> target/MWC-<版>.jar(版は pom.xml の version。Kotlin の標準ライブラリを同梱)
 ```
 
 ## 導入
-1. `target/MWC.jar` をサーバーの `plugins/` に置いて起動する(jar のファイル名は変えてもよい)。
+1. `target/MWC-<版>.jar` をサーバーの `plugins/` に置いて起動する(jar のファイル名は変えてもよい)。
 2. 初回起動時、コンソールに `MWC token: <64 桁の16進>` が一度だけ表示される。控えておく。
    トークンは `plugins/MWC/token.key` に保存される(Web からは読めない)。
    作り直すときはサーバーを止めて `token.key` を消し、起動し直す。

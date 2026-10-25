@@ -10,7 +10,7 @@
   <packaging>jar</packaging>
 
   <name>MWC</name>
-  <description>Minecraft Web Console (minimal MCDash-like plugin for Paper 1.21.4)</description>
+  <description>Minecraft Web Console (web dashboard plugin for Paper 1.21.4)</description>
 
   <properties>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
@@ -60,7 +60,7 @@
   </dependencies>
 
   <build>
-    <finalName>MWC</finalName>
+    <finalName>MWC-${project.version}</finalName>
     <sourceDirectory>src/main/kotlin</sourceDirectory>
     <resources>
       <resource>

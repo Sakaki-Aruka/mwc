@@ -63,7 +63,8 @@ if [[ $SKIP_BUILD == 0 ]]; then
     fail "mvn package (see tmp/verify-mvn.log)"; tail -25 "$ROOT/tmp/verify-mvn.log" | sed 's/^/      /'
   fi
 fi
-if [[ -f $ROOT/target/MWC.jar ]]; then pass "target/MWC.jar exists"; else fail "target/MWC.jar missing"; fi
+JAR=$(ls -t "$ROOT"/target/MWC-*.jar 2>/dev/null | head -1)
+if [[ -n $JAR ]]; then pass "$(basename "$JAR") exists"; else fail "target/MWC-*.jar missing"; fi
 
 # --- deploy + start (base-path を引数で変更できる) ---
 start_with() { # start_with <base-path>
@@ -75,7 +76,7 @@ start_with() { # start_with <base-path>
   if [[ -d $TDIR/plugins/MWC ]]; then rm -rf "$TDIR/plugins/MWC"; fi  # 前回実行の設定・トークンを消す(初回起動の挙動を毎回検証)
   mkdir -p "$TDIR/plugins/MWC"
   printf 'http:\n  base-path: %s\n' "$bp" >"$TDIR/plugins/MWC/config.yml"  # 検証対象の base-path をサーバーに適用
-  cp -f "$ROOT/target/MWC.jar" "$TDIR/plugins/MWC.jar"
+  cp -f "$JAR" "$TDIR/plugins/MWC.jar"
   mwc_server_start
   if mwc_server_wait_ready 180; then
     pass "server started (Done detected, base-path $bp)"

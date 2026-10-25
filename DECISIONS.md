@@ -45,3 +45,4 @@
 - タブ構成: メイン(状態・再起動・コンソール。コンソールは残りの高さを使う)/ プレイヤー / ファイル。開いているタブは `#main` などの URL フラグメントで保持する。
 - UI の部品は Bootstrap 5.3.3 の CSS(ダークテーマ)。CDN は使わず、`org.webjars:bootstrap` から CSS だけを jar に同梱し、`static/bootstrap.min.css` として配る。JS は自前。
 - 同梱したサードパーティのライセンスは `THIRD-PARTY-NOTICES`(jar の `META-INF/` にも入れる)。同梱物や版を変えたら更新する。
+- jar の名前は `MWC-<版>.jar`(`pom.xml` の version。人間の指示)。
