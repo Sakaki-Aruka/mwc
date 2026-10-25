@@ -1,88 +1,101 @@
 <!DOCTYPE html>
-<html lang="ja">
+<html lang="ja" data-bs-theme="dark">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>MWC</title>
+<link rel="stylesheet" href="static/bootstrap.min.css">
 <link rel="stylesheet" href="static/app.css">
 </head>
 <body>
 
 <div id="login-view" class="hidden">
-  <form id="login-form">
-    <h1>MWC</h1>
-    <p class="sub">Minecraft Web Console</p>
-    <label for="token">Token</label>
-    <input id="token" type="password" autocomplete="off" autofocus required>
-    <button type="submit">ログイン</button>
-    <p id="login-error" class="error" role="alert"></p>
+  <form id="login-form" class="card card-body shadow">
+    <h1 class="h4 mb-0">MWC</h1>
+    <p class="text-body-secondary small mb-3">Minecraft Web Console</p>
+    <label for="token" class="form-label small text-body-secondary">Token</label>
+    <input id="token" type="password" class="form-control mb-3" autocomplete="off" autofocus required>
+    <button type="submit" class="btn btn-primary w-100">ログイン</button>
+    <p id="login-error" class="text-danger small mt-2 mb-0" role="alert"></p>
   </form>
 </div>
 
 <div id="app-view" class="hidden">
-  <header>
-    <h1>MWC</h1>
-    <span id="conn" class="conn"></span>
+  <header class="navbar bg-body-tertiary border-bottom px-3 py-1">
+    <span class="navbar-brand fs-5 me-4">MWC</span>
+    <ul class="nav nav-underline me-auto">
+      <li class="nav-item"><a class="nav-link" href="#main" data-tab="main">メイン</a></li>
+      <li class="nav-item"><a class="nav-link" href="#players" data-tab="players">プレイヤー <span id="players-count" class="badge rounded-pill text-bg-secondary">0</span></a></li>
+      <li class="nav-item"><a class="nav-link" href="#files" data-tab="files">ファイル</a></li>
+    </ul>
+    <span id="conn" class="small"></span>
   </header>
 
-  <section class="panel">
-    <h2>状態</h2>
-    <div id="status" class="status">読み込み中…</div>
-  </section>
-
-  <section class="panel">
-    <h2>サーバー</h2>
-    <div id="server-bar">
-      <button id="restart-btn" type="button" class="danger">サーバーを再起動</button>
-      <span id="restart-status" class="file-status"></span>
-    </div>
-    <p class="hint">既定の方式 (shutdown) ではサーバーが停止し、systemd や Docker などの外部の監視が起動し直します。監視がない環境では停止したままになります。</p>
-  </section>
-
-  <section class="panel">
-    <h2>プレイヤー</h2>
-    <table id="players">
-      <thead>
-        <tr><th>名前</th><th>UUID</th><th>ping</th><th>ワールド</th></tr>
-      </thead>
-      <tbody id="players-body"></tbody>
-    </table>
-  </section>
-
-  <section class="panel">
-    <h2>コンソール</h2>
-    <div id="console" class="console"></div>
-    <form id="cmd-form">
-      <input id="cmd" type="text" autocomplete="off" spellcheck="false" placeholder="コマンド (例: say hello)">
-      <button type="submit">送信</button>
-    </form>
-  </section>
-
-  <section class="panel">
-    <h2>ファイル</h2>
-    <div id="file-bar">
-      <span id="file-path" class="file-path"></span>
-      <button id="file-refresh" type="button">更新</button>
-      <button id="file-up" type="button" class="hidden">..</button>
-      <button id="file-upload-btn" type="button">アップロード</button>
-      <input id="file-upload-input" type="file" class="hidden">
-    </div>
-    <p id="file-msg" class="file-status" role="status"></p>
-    <p class="hint">server.properties などの設定の変更や、プラグイン jar のアップロード・削除は、サーバーの再起動後に反映されます。</p>
-    <table id="files">
-      <thead>
-        <tr><th>名前</th><th>種別</th><th>サイズ</th><th>更新日時</th><th></th></tr>
-      </thead>
-      <tbody id="files-body"></tbody>
-    </table>
-    <div id="file-editor" class="hidden">
-      <div id="file-editor-bar">
-        <span id="file-editor-name"></span>
-        <span id="file-editor-status" class="file-status"></span>
-        <button id="file-save" type="button">保存</button>
-        <button id="file-close" type="button">閉じる</button>
+  <!-- メイン: 状態・再起動・コンソール。コンソールが残りの高さを使う -->
+  <section id="tab-main" class="tab p-3 gap-3">
+    <div class="card">
+      <div class="card-body py-2 d-flex flex-wrap align-items-center gap-3">
+        <div id="status" class="status flex-grow-1">読み込み中…</div>
+        <span id="restart-status" class="small"></span>
+        <button id="restart-btn" type="button" class="btn btn-sm btn-outline-danger">サーバーを再起動</button>
       </div>
-      <textarea id="file-content" spellcheck="false"></textarea>
+      <div class="card-footer small text-body-secondary py-1">既定の方式 (shutdown) ではサーバーが停止し、systemd や Docker などの外部の監視が起動し直します。監視がない環境では停止したままになります。</div>
+    </div>
+
+    <div id="console-card" class="card">
+      <div class="card-body d-flex flex-column gap-2">
+        <div id="console" class="console rounded"></div>
+        <form id="cmd-form" class="input-group">
+          <input id="cmd" type="text" class="form-control font-monospace" autocomplete="off" spellcheck="false" placeholder="コマンド (例: say hello)">
+          <button type="submit" class="btn btn-primary">送信</button>
+        </form>
+      </div>
+    </div>
+  </section>
+
+  <section id="tab-players" class="tab p-3">
+    <div class="card">
+      <div class="card-header">オンラインのプレイヤー</div>
+      <table id="players" class="table table-sm table-hover mb-0">
+        <thead>
+          <tr><th>名前</th><th>UUID</th><th>ping</th><th>ワールド</th></tr>
+        </thead>
+        <tbody id="players-body"></tbody>
+      </table>
+    </div>
+  </section>
+
+  <section id="tab-files" class="tab p-3">
+    <div class="card">
+      <div id="file-bar" class="card-header d-flex flex-wrap align-items-center gap-2">
+        <span id="file-path" class="file-path font-monospace text-success flex-grow-1"></span>
+        <button id="file-up" type="button" class="btn btn-sm btn-outline-secondary hidden">..</button>
+        <button id="file-refresh" type="button" class="btn btn-sm btn-outline-secondary">更新</button>
+        <button id="file-upload-btn" type="button" class="btn btn-sm btn-primary">アップロード</button>
+        <input id="file-upload-input" type="file" class="hidden">
+      </div>
+      <div class="card-body pb-0">
+        <p id="file-msg" class="file-msg small mb-1" role="status"></p>
+        <p class="small text-body-secondary mb-2">server.properties などの設定の変更や、プラグイン jar のアップロード・削除は、サーバーの再起動後に反映されます。</p>
+      </div>
+      <table id="files" class="table table-sm table-hover align-middle mb-0">
+        <thead>
+          <tr><th>名前</th><th>種別</th><th>サイズ</th><th>更新日時</th><th></th></tr>
+        </thead>
+        <tbody id="files-body"></tbody>
+      </table>
+    </div>
+
+    <div id="file-editor" class="card mt-3 hidden">
+      <div id="file-editor-bar" class="card-header d-flex flex-wrap align-items-center gap-2">
+        <span id="file-editor-name" class="font-monospace"></span>
+        <span id="file-editor-status" class="small flex-grow-1"></span>
+        <button id="file-save" type="button" class="btn btn-sm btn-primary">保存</button>
+        <button id="file-close" type="button" class="btn btn-sm btn-outline-secondary">閉じる</button>
+      </div>
+      <div class="card-body">
+        <textarea id="file-content" class="form-control font-monospace" spellcheck="false"></textarea>
+      </div>
     </div>
   </section>
 </div>

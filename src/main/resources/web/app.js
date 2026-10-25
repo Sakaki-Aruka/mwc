@@ -16,11 +16,39 @@
   var es = null;
   var inApp = false;
 
+  // 状態表示の色(Bootstrap の文字色クラス)。空の文字列では色を付けない
+  function setMsg(el, text, bad) {
+    el.textContent = text;
+    el.classList.toggle('text-danger', !!text && !!bad);
+    el.classList.toggle('text-success', !!text && !bad);
+  }
+
+  // ---------- tabs (#main / #players / #files) ----------
+
+  var TABS = ['main', 'players', 'files'];
+
+  function showTab() {
+    var name = location.hash.slice(1);
+    if (TABS.indexOf(name) < 0) name = 'main';
+    TABS.forEach(function (t) {
+      $('tab-' + t).classList.toggle('hidden', t !== name);
+      var link = document.querySelector('[data-tab="' + t + '"]');
+      link.classList.toggle('active', t === name);
+      if (t === name) link.setAttribute('aria-current', 'page'); else link.removeAttribute('aria-current');
+    });
+    // 隠れている間に届いた行は位置が合わないので、メインに戻ったら末尾を表示する
+    if (name === 'main') consoleEl.scrollTop = consoleEl.scrollHeight;
+  }
+
+  window.addEventListener('hashchange', showTab);
+  showTab();
+
   // ---------- auth / views ----------
 
   function setConn(text, bad) {
     connEl.textContent = text;
-    connEl.classList.toggle('bad', !!bad);
+    connEl.classList.toggle('conn-ok', !!text && !bad);
+    connEl.classList.toggle('conn-bad', !!text && !!bad);
   }
 
   function showLogin() {
@@ -89,13 +117,22 @@
       if (!res.ok) return;
       return res.json().then(function (s) {
         var tps = Array.prototype.map.call(s.tps || [], function (v) { return Number(v).toFixed(1); }).join(' / ');
-        statusEl.textContent =
-          'TPS: ' + (tps || '?') +
-          '  (avg tick ' + Number(s.avg_tick_time_ms).toFixed(2) + ' ms)    ' +
-          'Memory: ' + s.memory_used_mb + ' / ' + s.memory_max_mb + ' MB    ' +
-          'Uptime: ' + fmtUptime(s.uptime_seconds) + '    ' +
-          'Version: ' + s.version + '    ' +
-          'Players: ' + s.players_online + ' / ' + s.players_max;
+        var frag = document.createDocumentFragment();
+        [['TPS', (tps || '?') + ' (avg tick ' + Number(s.avg_tick_time_ms).toFixed(2) + ' ms)'],
+         ['Memory', s.memory_used_mb + ' / ' + s.memory_max_mb + ' MB'],
+         ['Uptime', fmtUptime(s.uptime_seconds)],
+         ['Version', s.version],
+         ['Players', s.players_online + ' / ' + s.players_max]].forEach(function (c) {
+          var item = document.createElement('span');
+          item.className = 'item';
+          var label = document.createElement('span');
+          label.className = 'label';
+          label.textContent = c[0];
+          item.appendChild(label);
+          item.appendChild(document.createTextNode(c[1]));
+          frag.appendChild(item);
+        });
+        statusEl.replaceChildren(frag);
       });
     }).catch(function () { statusEl.textContent = '状態の取得に失敗しました'; });
   }
@@ -103,9 +140,7 @@
   // ---------- restart ----------
 
   function setRestartStatus(text, bad) {
-    var el = $('restart-status');
-    el.textContent = text;
-    el.classList.toggle('err', !!bad);
+    setMsg($('restart-status'), text, bad);
   }
 
   $('restart-btn').addEventListener('click', function () {
@@ -136,7 +171,7 @@
           var tr0 = document.createElement('tr');
           var td0 = document.createElement('td');
           td0.colSpan = 4;
-          td0.className = 'empty';
+          td0.className = 'text-body-secondary fst-italic';
           td0.textContent = '(オンラインプレイヤーはいません)';
           tr0.appendChild(td0);
           frag.appendChild(tr0);
@@ -153,6 +188,7 @@
           });
         }
         playersBody.replaceChildren(frag);
+        $('players-count').textContent = list.length;
       });
     }).catch(function () { /* ignore transient errors */ });
   }
@@ -226,16 +262,12 @@
 
   // エディタ内の状態表示(読み込み・保存)
   function setFileStatus(text, bad) {
-    var el = fileEl('file-editor-status');
-    el.textContent = text;
-    el.classList.toggle('err', !!bad);
+    setMsg(fileEl('file-editor-status'), text, bad);
   }
 
   // 一覧の上の状態表示(アップロード・削除)。エディタを閉じていても見える
   function setFileMsg(text, bad) {
-    var el = fileEl('file-msg');
-    el.textContent = text;
-    el.classList.toggle('err', !!bad);
+    setMsg(fileEl('file-msg'), text, bad);
   }
 
   // 既定の許可ルート(server.properties・bukkit.yml・spigot.yml・config/・plugins/)の変更は、どれも再起動で反映される
@@ -255,7 +287,7 @@
         var tr = document.createElement('tr');
         var td = document.createElement('td');
         td.colSpan = 5;
-        td.className = 'err';
+        td.className = 'text-danger';
         td.textContent = '一覧の取得に失敗しました (' + res.status + ')';
         tr.appendChild(td);
         tb.appendChild(tr);
@@ -267,7 +299,7 @@
           var tr0 = document.createElement('tr');
           var td0 = document.createElement('td');
           td0.colSpan = 5;
-          td0.className = 'empty';
+          td0.className = 'text-body-secondary fst-italic';
           td0.textContent = '(空)';
           tr0.appendChild(td0);
           frag.appendChild(tr0);
@@ -275,7 +307,6 @@
         list.forEach(function (f) {
           var tr = document.createElement('tr');
           tr.className = 'file-row';
-          tr.style.cursor = 'pointer';
           var name = document.createElement('td');
           name.textContent = (f.type === 'dir' ? '📁 ' : '📄 ') + f.name;
           var type = document.createElement('td');
@@ -287,7 +318,7 @@
           var act = document.createElement('td');
           var del = document.createElement('button');
           del.type = 'button';
-          del.className = 'file-del';
+          del.className = 'btn btn-sm btn-outline-danger py-0';
           del.textContent = '削除';
           del.title = '削除';
           del.addEventListener('click', function (ev) {

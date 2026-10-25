@@ -144,9 +144,12 @@ class MwcHttp(private val plugin: MwcPlugin, private val config: MwcConfig, priv
 
     // ---------- static ----------
 
+    /** 配る名前 -> (jar 内のパス, Content-Type) */
     private val staticWhitelist = mapOf(
-        "app.js" to "text/javascript; charset=utf-8",
-        "app.css" to "text/css; charset=utf-8"
+        "app.js" to ("web/app.js" to "text/javascript; charset=utf-8"),
+        "app.css" to ("web/app.css" to "text/css; charset=utf-8"),
+        // Bootstrap は webjar から同梱する(pom.xml)。版を変えるときはパスも合わせる
+        "bootstrap.min.css" to ("META-INF/resources/webjars/bootstrap/5.3.3/css/bootstrap.min.css" to "text/css; charset=utf-8")
     )
 
     private fun serveIndex(ex: HttpExchange) {
@@ -164,12 +167,11 @@ class MwcHttp(private val plugin: MwcPlugin, private val config: MwcConfig, priv
             send(ex, 404, "application/json", """{"error":"not found"}""")
             return
         }
-        val ct = staticWhitelist[name]
-        if (ct == null) {
+        val (resource, ct) = staticWhitelist[name] ?: run {
             send(ex, 404, "application/json", """{"error":"not found"}""")
             return
         }
-        val content = plugin.resourceString("web/$name")
+        val content = plugin.resourceString(resource)
         if (content == null) {
             send(ex, 500, "text/plain", "$name missing from jar")
             return

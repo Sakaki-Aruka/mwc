@@ -1,54 +1,32 @@
-:root { color-scheme: dark; }
-* { box-sizing: border-box; }
-body { margin: 0; font-family: system-ui, sans-serif; background: #16181d; color: #e6e8ee; }
+/* Bootstrap (static/bootstrap.min.css) の上に重ねる、この画面だけの調整 */
 .hidden { display: none !important; }
 
 #login-view { min-height: 100vh; display: flex; align-items: center; justify-content: center; }
-#login-view form { background: #1f232b; padding: 2rem; border-radius: 8px; width: min(340px, 90vw); }
-#login-view h1 { margin: 0 0 .25rem; font-size: 1.4rem; }
-.sub { margin: 0 0 1.25rem; color: #9aa3b2; font-size: .85rem; }
-#login-view label { font-size: .85rem; color: #9aa3b2; }
-#login-view input { width: 100%; padding: .5rem; margin: .25rem 0 1rem; background: #101216; border: 1px solid #2a2f3a; color: inherit; border-radius: 4px; }
-#login-view button { width: 100%; }
-.error { color: #ff6b6b; min-height: 1.2em; margin: .75rem 0 0; }
+#login-form { flex: 0 0 auto; width: min(340px, 90vw); }
 
-header { display: flex; align-items: baseline; gap: 1rem; padding: .75rem 1rem; background: #1f232b; }
-header h1 { margin: 0; font-size: 1.1rem; }
-.conn { font-size: .8rem; color: #7ec699; }
-.conn.bad { color: #ffb74d; }
+/* 画面を縦に並べ、タブの中身が残りの高さを使う */
+#app-view { height: 100vh; display: flex; flex-direction: column; }
+.tab { flex: 1; min-height: 0; overflow-y: auto; }
+#tab-main { display: flex; flex-direction: column; overflow: hidden; }
+#console-card { flex: 1; min-height: 14rem; }
+#console-card .card-body { min-height: 0; }
 
-.panel { margin: .75rem 1rem; background: #1f232b; border-radius: 8px; padding: .75rem 1rem; }
-.panel h2 { margin: 0 0 .5rem; font-size: .85rem; color: #9aa3b2; text-transform: uppercase; letter-spacing: .05em; }
-.status { font-size: .9rem; line-height: 1.7; }
+.status { font-size: .9rem; }
+.status .item { margin-right: 1.25rem; white-space: nowrap; }
+.status .label { color: var(--bs-secondary-color); margin-right: .35rem; }
 
-table { border-collapse: collapse; width: 100%; font-size: .88rem; }
-th, td { text-align: left; padding: .3rem .5rem; border-bottom: 1px solid #2a2f3a; }
-th { color: #9aa3b2; font-weight: normal; }
-td.uuid { font-family: ui-monospace, monospace; font-size: .78rem; color: #9aa3b2; }
-td.empty { color: #9aa3b2; font-style: italic; }
+.conn-ok { color: var(--bs-success-text-emphasis); }
+.conn-bad { color: var(--bs-warning-text-emphasis); }
 
-.console { background: #101216; border-radius: 6px; height: 320px; overflow-y: auto; padding: .5rem .6rem; font-family: ui-monospace, monospace; font-size: .8rem; line-height: 1.45; white-space: pre-wrap; word-break: break-all; }
-.console .line.cmd { color: #7ec699; }
-.console .line.err { color: #ff6b6b; }
+.console { flex: 1; min-height: 0; overflow-y: auto; background: #0d0f12; padding: .5rem .6rem; font-family: var(--bs-font-monospace); font-size: .8rem; line-height: 1.45; white-space: pre-wrap; word-break: break-all; }
+.console .line.cmd { color: var(--bs-success-text-emphasis); }
+.console .line.err { color: var(--bs-danger-text-emphasis); }
 
-#cmd-form { display: flex; gap: .5rem; margin-top: .5rem; }
-#cmd-form input { flex: 1; padding: .5rem .6rem; font-family: ui-monospace, monospace; background: #101216; border: 1px solid #2a2f3a; color: inherit; border-radius: 4px; }
-button { padding: .5rem 1rem; cursor: pointer; background: #33507e; color: #fff; border: 0; border-radius: 4px; }
-button:hover { background: #40639c; }
-button.danger { background: #8e3b3b; }
-button.danger:hover { background: #b04c4c; }
-button.danger:disabled, button:disabled { opacity: .5; cursor: default; }
-.hint { font-size: .8rem; color: #999; margin: .5rem 0 0; }
+/* カードに直接入れた表の端の余白をカードの余白に揃える */
+.card > .table > :not(caption) > * > :first-child { padding-left: 1rem; }
+.card > .table > :not(caption) > * > :last-child { padding-right: 1rem; }
 
-#file-bar { display: flex; align-items: center; gap: .5rem; margin-bottom: .5rem; }
-.file-path { flex: 1; font-family: ui-monospace, monospace; font-size: .85rem; color: #7ec699; }
-.file-row:hover { background: #262b35; }
-.file-del { padding: .15rem .6rem; font-size: .75rem; background: #6e3340; }
-.file-del:hover { background: #9c4052; }
-.file-status { flex: 1; font-size: .8rem; color: #7ec699; }
-.file-status.err { color: #ff6b6b; }
-#file-msg { margin: 0 0 .4rem; min-height: 1.2em; }
-#file-editor { margin-top: .75rem; border-top: 1px solid #2a2f3a; padding-top: .5rem; }
-#file-editor-bar { display: flex; align-items: center; gap: .5rem; margin-bottom: .4rem; font-size: .85rem; }
-#file-editor-name { font-family: ui-monospace, monospace; }
-#file-content { width: 100%; height: 260px; background: #101216; border: 1px solid #2a2f3a; color: inherit; font-family: ui-monospace, monospace; font-size: .8rem; line-height: 1.45; padding: .5rem; border-radius: 4px; }
+td.uuid { font-family: var(--bs-font-monospace); font-size: .78rem; color: var(--bs-secondary-color); }
+.file-row { cursor: pointer; }
+.file-msg { min-height: 1.2em; }
+#file-content { height: 55vh; font-size: .8rem; line-height: 1.45; }

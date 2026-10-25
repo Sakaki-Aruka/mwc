@@ -45,6 +45,18 @@
       <artifactId>kotlin-stdlib</artifactId>
       <version>${kotlin.version}</version>
     </dependency>
+    <!-- 画面の CSS。jar に同梱し、static/bootstrap.min.css として配る(MwcHttp.kt)。版を変えるときは MwcHttp.kt のパスも合わせる -->
+    <dependency>
+      <groupId>org.webjars</groupId>
+      <artifactId>bootstrap</artifactId>
+      <version>5.3.3</version>
+      <exclusions>
+        <exclusion>
+          <groupId>*</groupId>
+          <artifactId>*</artifactId>
+        </exclusion>
+      </exclusions>
+    </dependency>
   </dependencies>
 
   <build>
@@ -107,6 +119,13 @@
                     <exclude>META-INF/NOTICE*</exclude>
                     <exclude>module-info.class</exclude>
                   </excludes>
+                </filter>
+                <!-- webjar からは配る CSS だけを入れる(著作権表示はファイルの先頭に入っている) -->
+                <filter>
+                  <artifact>org.webjars:bootstrap</artifact>
+                  <includes>
+                    <include>META-INF/resources/webjars/bootstrap/*/css/bootstrap.min.css</include>
+                  </includes>
                 </filter>
               </filters>
             </configuration>
