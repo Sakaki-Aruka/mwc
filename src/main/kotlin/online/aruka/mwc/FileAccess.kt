@@ -32,11 +32,37 @@ class FileAccess(private val plugin: MwcPlugin, val config: MwcConfig) {
 
     private val dataFolderReal: Path = plugin.dataFolder.toPath().toRealPath()
 
-    /** 自プラグインの jar (実パス)。ファイル名は利用者が変えることがあるので名前では決めない */
-    private val ownJarReal: Path? = try {
-        plugin.jarFile.toPath().toRealPath()
+    /**
+     * 自プラグインの jar (実パス)。ファイル名は利用者が変えることがあるので名前では決めない。
+     * Paper 1.21 は plugins/ の jar を plugins/.paper-remapped/ に変換して読み込み、getFile() はその写しを返す。
+     * 置き場所の jar は、plugins/ 直下の jar のうち plugin.yml の main がこのクラスのものとして起動時に探す。
+     */
+    private val ownJars: Set<Path> = findOwnJars()
+
+    private fun findOwnJars(): Set<Path> {
+        val out = HashSet<Path>()
+        try {
+            out.add(plugin.jarFile.toPath().toRealPath())
+        } catch (_: Exception) {
+        }
+        try {
+            Files.newDirectoryStream(dataFolderReal.parent, "*.jar").use { ds ->
+                for (p in ds) if (declaresThisPlugin(p)) out.add(p.toRealPath())
+            }
+        } catch (e: Exception) {
+            plugin.logger.warning("MWC: could not scan plugins/ for the own jar: ${e.message}")
+        }
+        return out
+    }
+
+    private fun declaresThisPlugin(jar: Path): Boolean = try {
+        java.util.zip.ZipFile(jar.toFile()).use { z ->
+            val e = z.getEntry("plugin.yml") ?: return false
+            val yml = z.getInputStream(e).bufferedReader().readText()
+            Regex("""(?m)^main:\s*['"]?""" + Regex.escape(MwcPlugin::class.java.name) + """['"]?\s*$""").containsMatchIn(yml)
+        }
     } catch (_: Exception) {
-        null
+        false
     }
 
     /** パスが許可ルート外に出た場合 (シンボリックリンク経由を含む) */
@@ -92,7 +118,7 @@ class FileAccess(private val plugin: MwcPlugin, val config: MwcConfig) {
     /** 保護対象: 自プラグインの認証トークンファイル・自 jar・ログキャプチャファイル */
     fun isProtected(real: Path): Boolean {
         if (real == dataFolderReal.resolve("token.key")) return true
-        if (ownJarReal != null && real == ownJarReal) return true
+        if (real in ownJars) return true
         val cap = config.captureFile
         if (cap.isNotEmpty() && real == dataFolderReal.resolve(cap)) return true
         return false
