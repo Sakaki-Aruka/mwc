@@ -40,3 +40,8 @@
   `(LogManager.getContext(false) as? core.LoggerContext)?.configuration?.rootLogger`。
   `event.message?.formattedMessage` で文字列を取得。
 - M5/M6 の保護対象に **capture.log**(`console.capture-file` のファイル)を追加(トークン表示行を含む)。
+
+## 画面(2026-10-25、人間の指示で監督役が変更)
+- タブ構成: メイン(状態・再起動・コンソール。コンソールは残りの高さを使う)/ プレイヤー / ファイル。開いているタブは `#main` などの URL フラグメントで保持する。
+- UI の部品は Bootstrap 5.3.3 の CSS(ダークテーマ)。CDN は使わず、`org.webjars:bootstrap` から CSS だけを jar に同梱し、`static/bootstrap.min.css` として配る。JS は自前。
+- 同梱したサードパーティのライセンスは `THIRD-PARTY-NOTICES`(jar の `META-INF/` にも入れる)。同梱物や版を変えたら更新する。

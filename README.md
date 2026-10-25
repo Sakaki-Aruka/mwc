@@ -91,6 +91,10 @@ location /mc/ {
 | `DELETE files?path=&confirm=true` | 削除 |
 | `POST restart` `{"confirm":true}` | 再起動 |
 
+## 同梱しているソフトウェア
+jar には Bootstrap 5.3.3(画面の CSS、MIT)と Kotlin 標準ライブラリ 2.0.21・JetBrains Java Annotations 13.0(Apache-2.0)を同梱している。
+著作権表示とライセンスの全文は `THIRD-PARTY-NOTICES`(jar では `META-INF/THIRD-PARTY-NOTICES`)にある。
+
 ## 検証(開発用)
 ```
 scripts/run-test-server.sh start|stop|loop     # test-server/ (Paper 1.21.4) を操作

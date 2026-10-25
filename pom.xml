@@ -67,6 +67,14 @@
         <directory>src/main/resources</directory>
         <filtering>true</filtering>
       </resource>
+      <!-- 同梱しているサードパーティのライセンス(jar の META-INF/THIRD-PARTY-NOTICES) -->
+      <resource>
+        <directory>${project.basedir}</directory>
+        <includes>
+          <include>THIRD-PARTY-NOTICES</include>
+        </includes>
+        <targetPath>META-INF</targetPath>
+      </resource>
     </resources>
     <plugins>
       <plugin>
