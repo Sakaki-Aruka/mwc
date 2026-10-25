@@ -36,7 +36,7 @@ class CommandHandler(private val plugin: MwcPlugin) {
             send(ex, 400, "application/json", """{"error":"command too long"}""")
             return
         }
-        plugin.auth.commandAudit(cmd)
+        plugin.auth.commandAudit(ex, cmd)
         try {
             val ok = MainThread.call(plugin, 10_000) {
                 Bukkit.dispatchCommand(Bukkit.getConsoleSender(), cmd)

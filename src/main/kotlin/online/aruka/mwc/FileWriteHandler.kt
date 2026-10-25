@@ -99,7 +99,7 @@ class FileWriteHandler(
                 } catch (_: Exception) {
                 }
             }
-            auth.audit("edit", rel, bytes.size.toLong())
+            auth.audit(ex, "edit", rel, bytes.size.toLong())
             send(ex, 200, "application/json", """{"ok":true}""")
         } catch (e: FileAccess.SecurityEscape) {
             send(ex, 403, "application/json", """{"error":"forbidden"}""")

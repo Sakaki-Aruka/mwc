@@ -131,14 +131,26 @@ class Auth(private val plugin: MwcPlugin) {
     fun isCsrfOk(exchange: HttpExchange): Boolean =
         "mwc".equals(exchange.requestHeaders.getFirst(CSRF_HEADER), ignoreCase = true)
 
-    fun audit(action: String, path: String, sizeBytes: Long? = null) {
+    fun audit(ex: HttpExchange, action: String, path: String, sizeBytes: Long? = null) {
         val size = if (sizeBytes != null) "${sizeBytes}B" else "-"
-        plugin.logger.info("MWC audit: $action path=$path size=$size (session=${sessions.keys.size} active)")
+        plugin.logger.info("MWC audit: $action path=$path size=$size (session=${sessionLabel(ex)} ip=${clientIp(ex)})")
     }
 
-    fun commandAudit(command: String) {
-        plugin.logger.info("MWC audit: command sent: $command")
+    fun commandAudit(ex: HttpExchange, command: String) {
+        plugin.logger.info("MWC audit: command sent: $command (session=${sessionLabel(ex)} ip=${clientIp(ex)})")
     }
+
+    /**
+     * 監査ログ用のセッションの識別子。Cookie の値そのものはログに出さず、SHA-256 の先頭 8 桁を使う
+     * (同じセッションの操作は同じ値になり、ログから Cookie は復元できない)。
+     */
+    fun sessionLabel(ex: HttpExchange): String {
+        val v = CookiePattern.find(ex.requestHeaders.getFirst("Cookie") ?: "")?.groupValues?.get(1) ?: return "-"
+        val d = java.security.MessageDigest.getInstance("SHA-256").digest(v.toByteArray())
+        return d.take(4).joinToString("") { "%02x".format(it) }
+    }
+
+    private fun clientIp(ex: HttpExchange): String = ex.remoteAddress?.address?.hostAddress ?: "-"
 
     private fun generateToken(): String {
         val b = ByteArray(32)

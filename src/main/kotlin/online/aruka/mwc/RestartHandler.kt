@@ -35,7 +35,7 @@ class RestartHandler(private val plugin: MwcPlugin) {
             return
         }
         val method = plugin.config.restartMethod
-        plugin.auth.audit("restart", "method=$method")
+        plugin.auth.audit(ex, "restart", "method=$method")
         // レスポンスを先にフラッシュする。停止は次のメインスレッド tick で行う。
         send(ex, 200, "application/json", """{"ok":true,"method":"$method"}""")
         Bukkit.getScheduler().runTask(plugin, Runnable {
