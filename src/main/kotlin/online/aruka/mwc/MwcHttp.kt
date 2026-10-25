@@ -65,10 +65,23 @@ class MwcHttp(private val plugin: MwcPlugin, private val config: MwcConfig, priv
                 return
             }
             handleAuthed(ex, method, route)
+        } catch (e: java.io.IOException) {
+            // クライアントの切断 (アップロードの中断、応答前にタブを閉じた等)。サーバーの異常ではない
+            plugin.logger.info("MWC: request aborted: ${ex.requestMethod} ${ex.requestURI.rawPath}: ${e.javaClass.simpleName}: ${e.message}")
+            trySend(ex, 500, """{"error":"request aborted"}""")
         } catch (e: Exception) {
             plugin.logger.severe("MWC: unhandled API error: ${e.javaClass.simpleName}: ${e.message}")
             e.stackTrace.take(5).forEach { plugin.logger.severe("    at $it") }
-            send(ex, 500, "application/json", """{"error":"internal error"}""")
+            trySend(ex, 500, """{"error":"internal error"}""")
+        }
+    }
+
+    /** 応答を試みる。相手が切断済みなら何もしない */
+    private fun trySend(ex: HttpExchange, code: Int, body: String) {
+        try {
+            send(ex, code, "application/json", body)
+        } catch (_: Exception) {
+            ex.close()
         }
     }
 

@@ -14,8 +14,7 @@ import java.io.FileWriter
  * 設定 `console.capture-file` が指定されていれば同様にファイルに追記する
  * (上限 1MB になったら切り捨て)。
  *
- * 無限再帰に注意: plugin.logger からの出力はこの Appender にも届くが、
- * 「最初の行だけ 1 回」のログは再帰しない (loggedFirst が 2 回目で true になる)。
+ * Appender の中からはログを出さない (Log4j が "Recursive call to appender" の ERROR を出す)。
  */
 class ConsoleLog(private val plugin: MwcPlugin) {
 
@@ -45,14 +44,17 @@ class ConsoleLog(private val plugin: MwcPlugin) {
     // SSE 購読者 (行を非ブロッキングで受け取る)
     private val listeners = java.util.concurrent.CopyOnWriteArrayList<(String) -> Unit>()
 
-    @Volatile
-    private var loggedFirst = false
-
     /** ルートロガーに Appender を付与する (onEnable で呼ぶ) */
     fun attach() {
         capacity = plugin.config.consoleBufferSize.coerceAtLeast(1)
         appender.start()
-        rootLoggerConfig()?.addAppender(appender, null, null)
+        val root = rootLoggerConfig()
+        if (root == null) {
+            plugin.logger.warning("MWC: Log4j core not found; the web console will not show server logs")
+            return
+        }
+        root.addAppender(appender, null, null)
+        plugin.logger.info("MWC: console capture attached (buffer ${capacity} lines)")
     }
 
     /** Appender を外してファイルを閉じる (onDisable で必ず呼ぶ) */
@@ -102,11 +104,6 @@ class ConsoleLog(private val plugin: MwcPlugin) {
     private fun onLine(msg: String) {
         val line = stripAnsi(msg)
         addLine(line)
-        if (!loggedFirst) {
-            loggedFirst = true
-            val preview = line.take(80).replace("\n", "\\n")
-            plugin.logger.info("MWC: console capture active (first line: $preview)")
-        }
         for (l in listeners) {
             try {
                 l(line)
